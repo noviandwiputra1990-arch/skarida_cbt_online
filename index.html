@@ -101,10 +101,9 @@
 
     function IndexLoginPortal() {
       const [loginRoleTab, setLoginRoleTab] = useState('siswa');
-      const [username, setUsername] = useState('0084921011');
-      const [password, setPassword] = useState('SKR-7741');
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
       const [showPass, setShowPass] = useState(false);
-      const [simulateDoubleDevice, setSimulateDoubleDevice] = useState(false);
       const [errorMsg, setErrorMsg] = useState('');
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [authenticatedSession, setAuthenticatedSession] = useState(null);
@@ -143,13 +142,19 @@
         setLoginRoleTab(tab);
         setErrorMsg('');
         setAuthenticatedSession(null);
-        if (tab === 'siswa') {
-          setUsername(DEMO_SISWA[0].username);
-          setPassword(DEMO_SISWA[0].pass);
-        } else {
-          setUsername(DEMO_STAFF[0].username);
-          setPassword(DEMO_STAFF[0].pass);
-        }
+        setUsername('');
+        setPassword('');
+      };
+
+      const normalizeId = (val) => String(val ?? '').trim().replace(/^0+/, '');
+
+      const completeLoginAndRedirect = (sessionPayload) => {
+        localStorage.setItem('skarida_cbt_session', JSON.stringify(sessionPayload));
+        setAuthenticatedSession(sessionPayload);
+        setIsSubmitting(false);
+        setTimeout(() => {
+          window.location.href = sessionPayload.targetFile;
+        }, 400);
       };
 
       const handleLoginSubmit = async (e) => {
@@ -157,27 +162,31 @@
         setErrorMsg('');
         setIsSubmitting(true);
 
-        // Jika URL Google Apps Script terhubung, verifikasi ke Spreadsheet
+        const inputUser = username.trim();
+        const inputPass = password.trim();
+
+        // 1. Verifikasi ke Google Sheets (POST login & Fallback GET initAll bila NISN terpotong angka 0 di Sheets)
         if (scriptUrl) {
           try {
             const res = await fetch(scriptUrl, {
               method: 'POST',
+              redirect: 'follow',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify({
                 action: 'login',
                 roleType: loginRoleTab,
-                username: username.trim(),
-                password: password.trim(),
-                forceLogin: !simulateDoubleDevice
+                username: inputUser,
+                password: inputPass,
+                forceLogin: true
               })
             });
             const result = await res.json();
-            if (result.status === 'success') {
+            if (result && result.status === 'success' && result.user) {
               const sessionPayload = {
                 id_user: result.user.id_user || result.user.id_staff,
                 username: result.user.username_nisn || result.user.username_nip,
                 nama: result.user.nama_lengkap,
-                role: result.role,
+                role: result.role || loginRoleTab,
                 kelas: result.user.kelas || '-',
                 jurusan: result.user.jurusan || '-',
                 agama: result.user.agama || '-',
@@ -185,52 +194,94 @@
                 targetFile: loginRoleTab === 'siswa' ? 'siswa.html' : 'admin.html',
                 loginTimestamp: serverTime
               };
-              localStorage.setItem('skarida_cbt_session', JSON.stringify(sessionPayload));
-              setAuthenticatedSession(sessionPayload);
-              setIsSubmitting(false);
-              return;
-            } else {
-              setErrorMsg(result.message || 'Gagal autentikasi ke Google Sheets.');
-              setIsSubmitting(false);
+              completeLoginAndRedirect(sessionPayload);
               return;
             }
-          } catch (err) {
-            setErrorMsg('Tidak dapat menghubungi URL Google Apps Script. Pastikan akses Web App disetel ke "Anyone".');
-            setIsSubmitting(false);
-            return;
+          } catch (_) {
+            // Lanjutkan ke pengecekan via GET initAll atau cadangan lokal jika POST terhalang CORS
+          }
+
+          try {
+            const resGet = await fetch(`${scriptUrl}?action=initAll`, { redirect: 'follow' });
+            const jsonGet = await resGet.json();
+            if (jsonGet && jsonGet.status === 'success' && jsonGet.data) {
+              if (loginRoleTab === 'siswa') {
+                const listSiswa = jsonGet.data.users_peserta || [];
+                const foundSiswa = listSiswa.find(u =>
+                  (String(u.username_nisn).trim() === inputUser || normalizeId(u.username_nisn) === normalizeId(inputUser)) &&
+                  String(u.password_plain).trim() === inputPass
+                );
+                if (foundSiswa) {
+                  completeLoginAndRedirect({
+                    id_user: foundSiswa.id_user,
+                    username: foundSiswa.username_nisn,
+                    nama: foundSiswa.nama_lengkap,
+                    role: 'siswa',
+                    kelas: foundSiswa.kelas || '-',
+                    jurusan: foundSiswa.jurusan || '-',
+                    agama: foundSiswa.agama || '-',
+                    targetFile: 'siswa.html',
+                    loginTimestamp: serverTime
+                  });
+                  return;
+                }
+              } else {
+                const listStaff = jsonGet.data.users_staff || [];
+                const foundStaff = listStaff.find(st =>
+                  (String(st.username_nip).trim().toLowerCase() === inputUser.toLowerCase() || normalizeId(st.username_nip) === normalizeId(inputUser)) &&
+                  String(st.password_plain).trim() === inputPass
+                );
+                if (foundStaff) {
+                  completeLoginAndRedirect({
+                    id_user: foundStaff.id_staff,
+                    username: foundStaff.username_nip,
+                    nama: foundStaff.nama_lengkap,
+                    role: foundStaff.role || 'admin',
+                    jabatan: foundStaff.mapel_jabatan || 'Admin / Guru',
+                    targetFile: 'admin.html',
+                    loginTimestamp: serverTime
+                  });
+                  return;
+                }
+              }
+            }
+          } catch (_) {
+            // Lanjutkan ke fallback data bawaan
           }
         }
 
-        // Mode Simulasi Lokal / Demo
-        setTimeout(() => {
-          if (loginRoleTab === 'siswa') {
-            const found = DEMO_SISWA.find(s => s.username === username.trim() && s.pass === password.trim());
-            if (!found) {
-              setErrorMsg('NISN atau Password Kartu Login tidak ditemukan. Pastikan sesuai dengan Kartu Ujian Anda.');
-              setIsSubmitting(false);
-              return;
-            }
-            if (simulateDoubleDevice && found.session_token) {
-              setErrorMsg(`SINGLE-DEVICE SESSION LOCK: Akun ${found.nama} (${found.username}) sedang aktif di perangkat lain [Token: ${found.session_token}]. Hubungi Pengawas untuk Reset Sesi.`);
-              setIsSubmitting(false);
-              return;
-            }
-            const payload = { ...found, targetFile: 'siswa.html', loginTimestamp: serverTime };
-            localStorage.setItem('skarida_cbt_session', JSON.stringify(payload));
-            setAuthenticatedSession(payload);
-          } else {
-            const found = DEMO_STAFF.find(st => st.username === username.trim() && st.pass === password.trim());
-            if (!found) {
-              setErrorMsg('Username/NIP atau Password Admin/Guru tidak valid.');
-              setIsSubmitting(false);
-              return;
-            }
-            const payload = { ...found, targetFile: 'admin.html', loginTimestamp: serverTime };
-            localStorage.setItem('skarida_cbt_session', JSON.stringify(payload));
-            setAuthenticatedSession(payload);
+        // 2. Fallback Data Bawaan (Jika Sheet belum diisi atau dijalankan di lingkungan Preview)
+        if (loginRoleTab === 'siswa') {
+          const found = DEMO_SISWA.find(s =>
+            (s.username === inputUser || normalizeId(s.username) === normalizeId(inputUser)) &&
+            s.pass === inputPass
+          );
+          if (!found) {
+            setErrorMsg('NISN atau Password tidak sesuai! Periksa kembali kredensial Anda.');
+            setIsSubmitting(false);
+            return;
           }
-          setIsSubmitting(false);
-        }, 300);
+          completeLoginAndRedirect({
+            ...found,
+            targetFile: 'siswa.html',
+            loginTimestamp: serverTime
+          });
+        } else {
+          const found = DEMO_STAFF.find(st =>
+            st.username.toLowerCase() === inputUser.toLowerCase() &&
+            st.pass === inputPass
+          );
+          if (!found) {
+            setErrorMsg('Username/NIP atau Password Admin/Guru tidak sesuai!');
+            setIsSubmitting(false);
+            return;
+          }
+          completeLoginAndRedirect({
+            ...found,
+            targetFile: 'admin.html',
+            loginTimestamp: serverTime
+          });
+        }
       };
 
       return (
@@ -379,6 +430,7 @@
                               type="text"
                               value={username}
                               onChange={e => setUsername(e.target.value)}
+                              placeholder={loginRoleTab === 'siswa' ? 'Masukkan NISN Anda...' : 'Masukkan Username atau NIP...'}
                               className="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-2xl pl-10 pr-4 py-3 text-sm font-mono font-bold text-white outline-none"
                               required
                             />
@@ -395,6 +447,7 @@
                               type={showPass ? 'text' : 'password'}
                               value={password}
                               onChange={e => setPassword(e.target.value)}
+                              placeholder="Masukkan Password..."
                               className="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-2xl pl-10 pr-10 py-3 text-sm font-mono font-bold text-amber-300 outline-none"
                               required
                             />
@@ -407,21 +460,6 @@
                             </button>
                           </div>
                         </div>
-
-                        {loginRoleTab === 'siswa' && (
-                          <label className="flex items-center justify-between p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer">
-                            <div className="pr-2">
-                              <span className="text-xs font-bold text-slate-200 block">Simulasi Proteksi Login Ganda</span>
-                              <span className="text-[10px] text-slate-400">Tolak login jika akun sedang dipakai di HP lain</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={simulateDoubleDevice}
-                              onChange={e => setSimulateDoubleDevice(e.target.checked)}
-                              className="w-4 h-4 accent-red-500 shrink-0"
-                            />
-                          </label>
-                        )}
 
                         {errorMsg && (
                           <div className="p-3.5 rounded-2xl bg-red-950/90 border border-red-500/50 text-xs text-red-200 flex items-start gap-2.5">
@@ -440,49 +478,13 @@
                           }`}
                         >
                           {isSubmitting
-                            ? 'Memverifikasi Kredensial...'
+                            ? 'Memverifikasi & Mengalihkan Halaman...'
                             : loginRoleTab === 'siswa'
                             ? 'Masuk ke Dashboard Ujian Siswa'
                             : 'Masuk ke Dashboard Admin / Guru'}
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       </form>
-
-                      <div className="pt-3 border-t border-slate-800 space-y-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Klik Akun Demo Cepat (Otomatis Isi):
-                        </div>
-                        <div className="space-y-1.5">
-                          {(loginRoleTab === 'siswa' ? DEMO_SISWA : DEMO_STAFF).map(acc => (
-                            <button
-                              key={acc.id_user}
-                              type="button"
-                              onClick={() => {
-                                setUsername(acc.username);
-                                setPassword(acc.pass);
-                                setErrorMsg('');
-                              }}
-                              className="w-full text-left p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 flex items-center justify-between text-xs transition"
-                            >
-                              <div>
-                                <div className="font-bold text-white flex items-center gap-1.5">
-                                  <span>{acc.nama}</span>
-                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] uppercase text-sky-400 font-extrabold">
-                                    {acc.role}
-                                  </span>
-                                </div>
-                                <div className="text-[10px] text-slate-400">
-                                  {loginRoleTab === 'siswa' ? `${acc.kelas} • Agama ${acc.agama}` : acc.jabatan}
-                                </div>
-                              </div>
-                              <div className="text-right font-mono">
-                                <div className="text-[10px] text-slate-300">{acc.username}</div>
-                                <div className="text-[10px] text-amber-400 font-bold">{acc.pass}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
                     </>
                   ) : (
                     <div className="py-4 text-center space-y-4">
