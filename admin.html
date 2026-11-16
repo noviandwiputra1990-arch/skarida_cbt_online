@@ -34,11 +34,270 @@
       } catch (_) {}
     };
 
+    const ICON_PATHS = {
+      Activity: (
+        <>
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </>
+      ),
+      Award: (
+        <>
+          <circle cx="12" cy="8" r="6" />
+          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+        </>
+      ),
+      Building2: (
+        <>
+          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+          <path d="M10 6h4" />
+          <path d="M10 10h4" />
+          <path d="M10 14h4" />
+          <path d="M10 18h4" />
+        </>
+      ),
+      GraduationCap: (
+        <>
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+        </>
+      ),
+      ShieldCheck: (
+        <>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </>
+      ),
+      ShieldAlert: (
+        <>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </>
+      ),
+      Users: (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </>
+      ),
+      BookOpen: (
+        <>
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </>
+      ),
+      CalendarClock: (
+        <>
+          <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" />
+          <path d="M16 2v4" />
+          <path d="M8 2v4" />
+          <path d="M3 10h5" />
+          <circle cx="17.5" cy="17.5" r="4.5" />
+          <path d="M17.5 15.5v2l1.5 1" />
+        </>
+      ),
+      FileCheck2: (
+        <>
+          <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="m3 15 2 2 4-4" />
+        </>
+      ),
+      Plus: (
+        <>
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </>
+      ),
+      Edit3: (
+        <>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </>
+      ),
+      Trash2: (
+        <>
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </>
+      ),
+      Eye: (
+        <>
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      ),
+      Search: (
+        <>
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </>
+      ),
+      RefreshCw: (
+        <>
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </>
+      ),
+      Printer: (
+        <>
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </>
+      ),
+      Upload: (
+        <>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </>
+      ),
+      FileSpreadsheet: (
+        <>
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="M8 13h2" />
+          <path d="M8 17h2" />
+          <path d="M14 13h2" />
+          <path d="M14 17h2" />
+        </>
+      ),
+      FileText: (
+        <>
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <line x1="10" y1="9" x2="8" y2="9" />
+        </>
+      ),
+      Smartphone: (
+        <>
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+        </>
+      ),
+      Clock: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </>
+      ),
+      Timer: (
+        <>
+          <line x1="10" y1="2" x2="14" y2="2" />
+          <line x1="12" y1="14" x2="15" y2="11" />
+          <circle cx="12" cy="14" r="8" />
+        </>
+      ),
+      Database: (
+        <>
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </>
+      ),
+      Lock: (
+        <>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </>
+      ),
+      KeyRound: (
+        <>
+          <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" />
+          <circle cx="16.5" cy="7.5" r=".5" />
+        </>
+      ),
+      Ban: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        </>
+      ),
+      CheckCircle2: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="m9 12 2 2 4-4" />
+        </>
+      ),
+      AlertTriangle: (
+        <>
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </>
+      ),
+      PieChart: (
+        <>
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+          <path d="M22 12A10 10 0 0 0 12 2v10z" />
+        </>
+      ),
+      BarChart3: (
+        <>
+          <path d="M3 3v18h18" />
+          <path d="M18 17V9" />
+          <path d="M13 17V5" />
+          <path d="M8 17v-3" />
+        </>
+      ),
+      UserCircle2: (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="10" r="3" />
+          <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+        </>
+      ),
+      Image: (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        </>
+      ),
+      Layers: (
+        <>
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </>
+      ),
+      ChevronRight: (
+        <>
+          <polyline points="9 18 15 12 9 6" />
+        </>
+      ),
+      ChevronLeft: (
+        <>
+          <polyline points="15 18 9 12 15 6" />
+        </>
+      ),
+      X: (
+        <>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </>
+      ),
+      Check: (
+        <>
+          <polyline points="20 6 9 17 4 12" />
+        </>
+      )
+    };
+
     const LucideIcons = new Proxy({}, {
       get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...rest}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v4l2 2" />
+          {ICON_PATHS[prop] || ICON_PATHS.Activity}
         </svg>
       )
     });
@@ -250,21 +509,32 @@
       return `${totalMenit} Menit ${detik} Detik`;
     };
 
-    function SidebarBtn({ active, onClick, icon: Icon, label, desc }) {
+    function SidebarBtn({ active, onClick, icon: Icon, label, desc, accent = 'indigo' }) {
+      const colorMap = {
+        emerald: active ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500/20',
+        amber: active ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500/20',
+        sky: active ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/30' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20 group-hover:bg-sky-500/20',
+        violet: active ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'bg-violet-500/10 text-violet-400 border border-violet-500/20 group-hover:bg-violet-500/20',
+        rose: active ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 group-hover:bg-rose-500/20',
+        indigo: active ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-500/20',
+      };
       return (
         <button
           onClick={onClick}
-          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-all ${
+          className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all duration-200 ${
             active
-              ? 'bg-indigo-600/15 border border-indigo-500/40 text-indigo-300 shadow-sm'
-              : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+              ? 'bg-gradient-to-r from-indigo-600/25 via-slate-800/90 to-slate-900 border border-indigo-500/50 text-white shadow-md'
+              : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent'
           }`}
         >
-          <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-slate-400'}`} />
-          <div className="min-w-0">
-            <div className={`text-xs font-bold truncate ${active ? 'text-white' : 'text-slate-300'}`}>{label}</div>
-            <div className="text-[10px] opacity-70 truncate">{desc}</div>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${colorMap[accent] || colorMap.indigo}`}>
+            <Icon className="w-4 h-4" />
           </div>
+          <div className="min-w-0 flex-1">
+            <div className={`text-xs font-extrabold truncate ${active ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>{label}</div>
+            <div className="text-[10px] text-slate-400 truncate">{desc}</div>
+          </div>
+          {active && <span className="w-1.5 h-5 rounded-full bg-sky-400 shrink-0" />}
         </button>
       );
     }
@@ -646,23 +916,23 @@
               </div>
             </div>
 
-            <div className="p-3 space-y-1 flex-1 overflow-y-auto">
+            <div className="p-3 space-y-1.5 flex-1 overflow-y-auto">
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
-              <SidebarBtn active={activeTab === 'command-center'} onClick={() => setActiveTab('command-center')} icon={Activity} label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
+              <SidebarBtn active={activeTab === 'command-center'} onClick={() => setActiveTab('command-center')} icon={Activity} accent="emerald" label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Master</div>
-              <SidebarBtn active={activeTab === 'master-ujian'} onClick={() => setActiveTab('master-ujian')} icon={Award} label="Manajemen Ujian" desc="Master Jenis & Nama Ujian" />
-              <SidebarBtn active={activeTab === 'master-jurusan'} onClick={() => setActiveTab('master-jurusan')} icon={Building2} label="Manajemen Jurusan" desc="Kompetensi Keahlian SMK" />
-              <SidebarBtn active={activeTab === 'master-kelas'} onClick={() => setActiveTab('master-kelas')} icon={GraduationCap} label="Manajemen Kelas" desc="Rombel Terhubung Jurusan" />
+              <SidebarBtn active={activeTab === 'master-ujian'} onClick={() => setActiveTab('master-ujian')} icon={Award} accent="amber" label="Manajemen Ujian" desc="Master Jenis & Nama Ujian" />
+              <SidebarBtn active={activeTab === 'master-jurusan'} onClick={() => setActiveTab('master-jurusan')} icon={Building2} accent="sky" label="Manajemen Jurusan" desc="Kompetensi Keahlian SMK" />
+              <SidebarBtn active={activeTab === 'master-kelas'} onClick={() => setActiveTab('master-kelas')} icon={GraduationCap} accent="violet" label="Manajemen Kelas" desc="Rombel Terhubung Jurusan" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Persiapan Ujian</div>
-              <SidebarBtn active={activeTab === 'manajemen-staff'} onClick={() => setActiveTab('manajemen-staff')} icon={ShieldCheck} label="User Admin & Guru" desc="CRUD Akun Admin & Guru Mapel" />
-              <SidebarBtn active={activeTab === 'akun'} onClick={() => setActiveTab('akun')} icon={Users} label="Akun Peserta" desc="Dapodik, Filter Agama & Kartu" />
-              <SidebarBtn active={activeTab === 'bank-soal'} onClick={() => setActiveTab('bank-soal')} icon={BookOpen} label="Bank Soal" desc="Auto-Load Soal & Opsi Gambar" />
-              <SidebarBtn active={activeTab === 'sesi'} onClick={() => setActiveTab('sesi')} icon={CalendarClock} label="Konfigurasi Sesi" desc="Jadwal, Min Submit & Drag-Drop" />
+              <SidebarBtn active={activeTab === 'manajemen-staff'} onClick={() => setActiveTab('manajemen-staff')} icon={ShieldCheck} accent="indigo" label="User Admin & Guru" desc="CRUD Akun Admin & Guru Mapel" />
+              <SidebarBtn active={activeTab === 'akun'} onClick={() => setActiveTab('akun')} icon={Users} accent="sky" label="Akun Peserta" desc="Dapodik, Filter Agama & Kartu" />
+              <SidebarBtn active={activeTab === 'bank-soal'} onClick={() => setActiveTab('bank-soal')} icon={BookOpen} accent="amber" label="Bank Soal" desc="Auto-Load Soal & Opsi Gambar" />
+              <SidebarBtn active={activeTab === 'sesi'} onClick={() => setActiveTab('sesi')} icon={CalendarClock} accent="violet" label="Konfigurasi Sesi" desc="Jadwal, Min Submit & Drag-Drop" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Evaluasi & Audit</div>
-              <SidebarBtn active={activeTab === 'koreksi'} onClick={() => setActiveTab('koreksi')} icon={FileCheck2} label="Koreksi & e-Rapor" desc="Audit Waktu, Log & Nilai" />
+              <SidebarBtn active={activeTab === 'koreksi'} onClick={() => setActiveTab('koreksi')} icon={FileCheck2} accent="rose" label="Koreksi & e-Rapor" desc="Audit Waktu, Log & Nilai" />
             </div>
 
             <div className="p-4 border-t border-slate-800 bg-slate-900/50 space-y-2">
@@ -841,25 +1111,29 @@
                                 </td>
                                 <td className="p-3.5 text-[11px] text-slate-300">{pu.user_agent_device}</td>
                                 <td className="p-3.5 font-bold text-amber-300">{pu.jumlah_pelanggaran} / 3 Strike</td>
-                                <td className="p-3.5 pr-5 text-right space-x-1.5">
-                                  <button
-                                    onClick={() => {
-                                      setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'sedang_mengerjakan', jumlah_pelanggaran: 0 } : item));
-                                      triggerToast('Sesi Direset', `Sesi & strike ${u?.nama_lengkap} berhasil direset.`);
-                                    }}
-                                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold border border-slate-700"
-                                  >
-                                    Reset Sesi
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'dihentikan_sistem', waktu_selesai: '2026-11-16 08:30:00' } : item));
-                                      triggerToast('Force Submit', `Ujian ${u?.nama_lengkap} dihentikan paksa.`, 'warning');
-                                    }}
-                                    className="px-2.5 py-1 bg-red-900/40 hover:bg-red-800/70 text-red-300 rounded-lg font-bold border border-red-800/50"
-                                  >
-                                    Force Submit
-                                  </button>
+                                <td className="p-3.5 pr-5 text-right">
+                                  <div className="inline-flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'sedang_mengerjakan', jumlah_pelanggaran: 0 } : item));
+                                        triggerToast('Sesi Direset', `Sesi & strike ${u?.nama_lengkap} berhasil direset.`);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500 hover:text-slate-950 text-sky-300 rounded-xl font-bold border border-sky-500/30 transition-all shadow-sm"
+                                      title="Reset Kunci Perangkat & Strike"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" /> Reset Sesi
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'dihentikan_sistem', waktu_selesai: '2026-11-16 08:30:00' } : item));
+                                        triggerToast('Force Submit', `Ujian ${u?.nama_lengkap} dihentikan paksa.`, 'warning');
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-300 rounded-xl font-bold border border-rose-500/30 transition-all shadow-sm"
+                                      title="Hentikan Ujian Paksa"
+                                    >
+                                      <Ban className="w-3.5 h-3.5" /> Force Submit
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -876,7 +1150,7 @@
                 <div className="space-y-4">
                   <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
                     <h3 className="font-bold text-white text-sm">Daftar Master Jenis Ujian</h3>
-                    <button onClick={() => setUjianModal({ id_ujian: null, nama_ujian: '', kode: '', status: 'Aktif' })} className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5">
+                    <button onClick={() => setUjianModal({ id_ujian: null, nama_ujian: '', kode: '', status: 'Aktif' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
                       <Plus className="w-4 h-4" /> Tambah Nama Ujian
                     </button>
                   </div>
@@ -886,17 +1160,345 @@
                         <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
                           <th className="p-3.5 pl-5">Kode</th>
                           <th className="p-3.5">Nama Ujian</th>
-                          <th className="p-3.5 text-right pr-5">Aksi</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {masterUjian.map(u => (
-                          <tr key={u.id_ujian}>
+                          <tr key={u.id_ujian} className="hover:bg-slate-800/30">
                             <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{u.kode}</td>
                             <td className="p-3.5 font-bold text-white">{u.nama_ujian}</td>
-                            <td className="p-3.5 pr-5 text-right space-x-1.5">
-                              <button onClick={() => setUjianModal({ ...u })} className="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg"><Edit3 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => setMasterUjian(masterUjian.filter(x => x.id_ujian !== u.id_ujian))} className="p-1.5 bg-red-500/10 text-red-400 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setUjianModal({ ...u })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setMasterUjian(masterUjian.filter(x => x.id_ujian !== u.id_ujian))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. MASTER JURUSAN */}
+              {activeTab === 'master-jurusan' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+                    <h3 className="font-bold text-white text-sm">Daftar Kompetensi Keahlian (Jurusan)</h3>
+                    <button onClick={() => setJurusanModal({ id_jurusan: null, kode_jurusan: '', nama_jurusan: '' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
+                      <Plus className="w-4 h-4" /> Tambah Jurusan
+                    </button>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5">Kode</th>
+                          <th className="p-3.5">Nama Jurusan</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {masterJurusan.map(j => (
+                          <tr key={j.id_jurusan} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 font-mono font-bold text-emerald-400">{j.kode_jurusan}</td>
+                            <td className="p-3.5 font-bold text-white">{j.nama_jurusan}</td>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setJurusanModal({ ...j })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setMasterJurusan(masterJurusan.filter(x => x.id_jurusan !== j.id_jurusan))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. MASTER KELAS */}
+              {activeTab === 'master-kelas' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+                    <h3 className="font-bold text-white text-sm">Daftar Master Kelas (Rombel)</h3>
+                    <button onClick={() => setKelasModal({ id_kelas: null, kode_jurusan: 'DPIB', tingkat: 'X', nama_kelas: '' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
+                      <Plus className="w-4 h-4" /> Tambah Kelas
+                    </button>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5">Jurusan</th>
+                          <th className="p-3.5">Nama Kelas</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {masterKelas.map(k => (
+                          <tr key={k.id_kelas} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{k.kode_jurusan}</td>
+                            <td className="p-3.5 font-bold text-white">{k.nama_kelas}</td>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setKelasModal({ ...k })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setMasterKelas(masterKelas.filter(x => x.id_kelas !== k.id_kelas))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. MANAJEMEN USER ADMIN & GURU (CRUD) */}
+              {activeTab === 'manajemen-staff' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Manajemen User Admin & Guru (CRUD)</h3>
+                      <p className="text-xs text-slate-400">Tambah, Edit, dan Hapus akun Superadmin maupun Guru Mata Pelajaran.</p>
+                    </div>
+                    <button
+                      onClick={() => setStaffModal({ id_staff: null, username_nip: '', nama_lengkap: '', role: 'guru', mapel_jabatan: '', password_plain: 'GURU-2026', new_password: '', status: 'Aktif' })}
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah User Admin / Guru
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5">Username / NIP</th>
+                          <th className="p-3.5">Nama Lengkap</th>
+                          <th className="p-3.5">Role</th>
+                          <th className="p-3.5">Mapel / Jabatan</th>
+                          <th className="p-3.5">Password</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredStaffUsers.map(st => (
+                          <tr key={st.id_staff} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{st.username_nip}</td>
+                            <td className="p-3.5 font-bold text-white">{st.nama_lengkap}</td>
+                            <td className="p-3.5 uppercase font-extrabold text-sky-400">{st.role}</td>
+                            <td className="p-3.5 text-slate-300">{st.mapel_jabatan}</td>
+                            <td className="p-3.5 font-mono text-amber-400 font-bold">{st.password_plain}</td>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setStaffModal({ ...st, new_password: '' })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setStaffUsers(staffUsers.filter(x => x.id_staff !== st.id_staff))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. AKUN PESERTA */}
+              {activeTab === 'akun' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap gap-3 justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Manajemen Akun Peserta & Siklus Dapodik</h3>
+                      <p className="text-xs text-slate-400">Filter Jurusan, Kelas, dan Agama serta Edit Username/Password & Cetak Kartu Login.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setEditUserModal({ id_user: null, username_nisn: '', nama_lengkap: '', agama: 'Islam', jurusan: 'DPIB', kelas: 'X DPIB 1', password_plain: 'SKR-8812', new_password: '' })} className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20">
+                        <Plus className="w-3.5 h-3.5" /> Tambah Peserta
+                      </button>
+                      <button onClick={() => setShowKartuModal(true)} className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                        <Printer className="w-3.5 h-3.5" /> Cetak Kartu Login ({filteredUsers.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <select value={akunFilterJurusan} onChange={e => setAkunFilterJurusan(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Jurusan</option>
+                      {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
+                    </select>
+                    <select value={akunFilterKelas} onChange={e => setAkunFilterKelas(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Kelas</option>
+                      {masterKelas.map(k => <option key={k.id_kelas} value={k.nama_kelas}>{k.nama_kelas}</option>)}
+                    </select>
+                    <select value={akunFilterAgama} onChange={e => setAkunFilterAgama(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Agama</option>
+                      {AGAMA_LIST.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <input type="text" value={akunSearch} onChange={e => setAkunSearch(e.target.value)} placeholder="Cari Nama / NISN..." className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" />
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5">NISN</th>
+                          <th className="p-3.5">Nama Lengkap</th>
+                          <th className="p-3.5">Kelas & Jurusan</th>
+                          <th className="p-3.5">Agama</th>
+                          <th className="p-3.5">Password</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredUsers.map(u => (
+                          <tr key={u.id_user} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{u.username_nisn}</td>
+                            <td className="p-3.5 font-bold text-white">{u.nama_lengkap}</td>
+                            <td className="p-3.5">{u.kelas} ({u.jurusan})</td>
+                            <td className="p-3.5 text-indigo-300 font-semibold">{u.agama}</td>
+                            <td className="p-3.5 font-mono font-bold text-amber-400">{u.password_plain}</td>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setEditUserModal({ ...u, new_password: '' })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setUsers(users.filter(x => x.id_user !== u.id_user))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 7. BANK SOAL */}
+              {activeTab === 'bank-soal' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {filteredPaketSoal.map(pkt => {
+                      const isSelected = selectedPaketId === pkt.id_paket;
+                      return (
+                        <div key={pkt.id_paket} onClick={() => setSelectedPaketId(pkt.id_paket)} className={`p-4 rounded-2xl border cursor-pointer transition ${isSelected ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500' : 'bg-slate-900 border-slate-800'}`}>
+                          <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold rounded uppercase">{pkt.jurusan} • Kelas {pkt.kelas}</span>
+                          <h4 className="font-bold text-white text-sm mt-2">{pkt.mata_pelajaran}</h4>
+                          <p className="text-[11px] text-slate-400 mt-1">{pkt.guru}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {selectedPaketId && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+                        <h3 className="font-bold text-white text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-amber-400" /> Daftar Butir Soal (Paket #{selectedPaketId})</h3>
+                        <button
+                          onClick={() => setSoalModal({ id_soal: null, id_paket: selectedPaketId, tipe_soal: 'PG', kategori_kognitif: 'MoTS', bobot_skor: 2, teks_pertanyaan: '', file_gambar_soal: null, jumlah_opsi: 5, opsi: ['', '', '', '', ''], gambar_opsi: [null, null, null, null, null], kunci_jawaban: 'A' })}
+                          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                        >
+                          <Plus className="w-4 h-4" /> Tambah Butir Soal
+                        </button>
+                      </div>
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-950/60 text-slate-400 uppercase border-b border-slate-800">
+                            <th className="p-3.5 pl-5">No</th>
+                            <th className="p-3.5">Tipe & Opsi</th>
+                            <th className="p-3.5">Kognitif</th>
+                            <th className="p-3.5">Pertanyaan</th>
+                            <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {masterSoal.filter(s => s.id_paket === selectedPaketId).map((s, idx) => (
+                            <tr key={s.id_soal} className="hover:bg-slate-800/30">
+                              <td className="p-3.5 pl-5 font-mono">{idx + 1}</td>
+                              <td className="p-3.5 font-bold text-indigo-300">{s.tipe_soal} {s.tipe_soal === 'PG' ? `(${s.jumlah_opsi} Opsi)` : ''}</td>
+                              <td className="p-3.5 font-bold text-amber-300">{s.kategori_kognitif}</td>
+                              <td className="p-3.5 text-white">{s.teks_pertanyaan}</td>
+                              <td className="p-3.5 pr-5 text-right">
+                                <div className="inline-flex items-center justify-end gap-2">
+                                  <button onClick={() => setPreviewSoalModal(s)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl border border-emerald-500/30 font-bold transition-all">
+                                    <Eye className="w-3.5 h-3.5" /> Preview
+                                  </button>
+                                  <button onClick={() => setSoalModal({ ...s })} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                    <Edit3 className="w-3.5 h-3.5" /> Edit
+                                  </button>
+                                  <button onClick={() => setMasterSoal(masterSoal.filter(x => x.id_soal !== s.id_soal))} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 8. KONFIGURASI SESI */}
+              {activeTab === 'sesi' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+                    <h3 className="font-bold text-white text-sm">Daftar Sesi Ujian Terjadwal</h3>
+                    <button
+                      onClick={() => setSesiModal({ id_sesi: null, id_ujian: 1, id_paket: 201, nama_sesi_spesifik: '', waktu_buka: '2026-11-20T07:30', waktu_tutup: '2026-11-20T09:30', durasi_menit: 90, minimal_menit_submit: 30, is_proctoring_active: true, enable_watermark: true, is_acak_soal: true, require_token: true, token: 'SKR-892A', limit_soal_pg: 25, limit_soal_uraian: 5, peserta_ids: [1001, 1002] })}
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Sesi Ujian
+                    </button>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5">Nama Sesi</th>
+                          <th className="p-3.5">Jadwal Buka - Tutup</th>
+                          <th className="p-3.5">Durasi & Min. Submit</th>
+                          <th className="p-3.5">Target Peserta</th>
+                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredSesi.map(s => (
+                          <tr key={s.id_sesi} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 font-bold text-white">{s.nama_sesi_spesifik}</td>
+                            <td className="p-3.5 font-mono text-[11px]">{String(s.waktu_buka || '').replace('T', ' ')} s/d {String(s.waktu_tutup || '').replace('T', ' ')}</td>
+                            <td className="p-3.5">{s.durasi_menit} Mnt (Min. Submit: {s.minimal_menit_submit}m)</td>
+                            <td className="p-3.5 font-bold text-indigo-300">{(s.peserta_ids || []).length} Siswa</td>
+                            <td className="p-3.5 pr-5 text-right">
+                              <div className="inline-flex items-center justify-end gap-2">
+                                <button onClick={() => setSesiModal({ ...s })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button onClick={() => setSesiUjian(sesiUjian.filter(x => x.id_sesi !== s.id_sesi))} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
