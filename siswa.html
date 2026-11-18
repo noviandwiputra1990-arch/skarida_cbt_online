@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Dashboard Siswa SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
-  <link rel="icon" type="image/png" href="logo_skarida.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -37,7 +36,7 @@
 <body class="bg-slate-950 text-slate-100 antialiased">
   <div id="root"></div>
 
-  <script type="text/babel">
+  <script>
     const { useState, useEffect } = React;
 
     const safeGetStorage = (key, fallback = '') => {
@@ -80,18 +79,21 @@
     const LucideIcons = new Proxy({}, {
       get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => {
         const rawSvg = LUCIDE_ICON_PATHS[prop] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/>';
-        return (
-          <svg
-            className={`inline-block shrink-0 ${className}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            dangerouslySetInnerHTML={{ __html: rawSvg }}
-            {...rest}
-          />
+        return React.createElement(
+          'svg',
+          Object.assign(
+            {
+              className: `inline-block shrink-0 ${className}`,
+              viewBox: '0 0 24 24',
+              fill: 'none',
+              stroke: 'currentColor',
+              strokeWidth: '2',
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+              dangerouslySetInnerHTML: { __html: rawSvg }
+            },
+            rest
+          )
         );
       }
     });
@@ -215,18 +217,28 @@
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
+    const isPreviewSandboxEnv = () => {
+      if (typeof window === 'undefined') return true;
+      const { protocol, hostname, pathname } = window.location;
+      if (protocol === 'blob:' || protocol === 'about:' || protocol === 'data:') return true;
+      if (!hostname || hostname.includes('usercontent.goog') || hostname.includes('webcontainer') || hostname.includes('codesandbox') || hostname.includes('stackblitz')) return true;
+      if (pathname && pathname.includes('srcdoc')) return true;
+      return false;
+    };
+
+    let cachedLogoResolvedSrc = isPreviewSandboxEnv() ? LOGO_DATA_URI : 'logo_skarida.png';
+
     function SkaridaLogo({ className = 'w-10 h-10' }) {
-      return (
-        <img
-          src="logo_skarida.png"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = LOGO_DATA_URI;
-          }}
-          alt="Logo SMK Negeri 2 Tegalsari"
-          className={`${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`}
-        />
-      );
+      const [logoSrc, setLogoSrc] = useState(cachedLogoResolvedSrc);
+      return React.createElement('img', {
+        src: logoSrc,
+        onError: () => {
+          cachedLogoResolvedSrc = LOGO_DATA_URI;
+          setLogoSrc(LOGO_DATA_URI);
+        },
+        alt: 'Logo SMK Negeri 2 Tegalsari',
+        className: `${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`
+      });
     }
 
     // Seluruh data diambil secara real-time dari Database Google Sheets (tanpa data dummy)
@@ -610,14 +622,14 @@
     };
 
     function RichMathText({ text, className = '' }) {
-      return (
-        <div
-          className={`rich-math-content whitespace-pre-line break-words leading-relaxed ${className}`}
-          dangerouslySetInnerHTML={{ __html: renderRichMathHtml(text) }}
-        />
-      );
+      return React.createElement('div', {
+        className: `rich-math-content whitespace-pre-line break-words leading-relaxed ${className}`,
+        dangerouslySetInnerHTML: { __html: renderRichMathHtml(text) }
+      });
     }
+  </script>
 
+  <script type="text/babel">
     function StudentPortalApp() {
       const [viewportMode, setViewportMode] = useState('full');
       const [screen, setScreen] = useState('dashboard');
@@ -796,7 +808,7 @@
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = 'logo_skarida.png';
+        link.href = cachedLogoResolvedSrc;
       }, []);
 
       // Update jam real-time setiap 1 detik
@@ -1201,6 +1213,9 @@
               } else {
                 jmlSalahPG += 1;
               }
+            } else {
+              // Tandai bahwa soal PG ini termasuk dalam kuota soal yang disajikan pada sesi peserta
+              jawabanPgMap[q.id_soal] = '';
             }
           } else {
             const essayTxt = String(ans || '').trim();
