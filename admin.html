@@ -4204,6 +4204,11 @@
                         {filteredSesi.map(s => {
                           const pktSesi = paketSoal.find(p => String(p.id_paket) === String(s.id_paket));
                           const zonaSesi = s.zona_waktu || zonaWaktuIndonesia || 'WIB';
+                          const stokSoalPkt = masterSoal.filter(q => String(q.id_paket) === String(s.id_paket));
+                          const stokPG = stokSoalPkt.filter(q => q.tipe_soal === 'PG').length;
+                          const stokUraian = stokSoalPkt.filter(q => q.tipe_soal === 'Uraian').length;
+                          const tarikPG = s.limit_soal_pg !== undefined ? Number(s.limit_soal_pg) : stokPG;
+                          const tarikUraian = s.limit_soal_uraian !== undefined ? Number(s.limit_soal_uraian) : stokUraian;
                           return (
                             <tr key={s.id_sesi} className="hover:bg-slate-800/30">
                               <td className="p-3.5 pl-5">
@@ -4216,7 +4221,13 @@
                                 <div className="text-emerald-400">Buka : {formatJadwalIndonesia(s.waktu_buka, zonaSesi)}</div>
                                 <div className="text-rose-400">Tutup: {formatJadwalIndonesia(s.waktu_tutup, zonaSesi)}</div>
                               </td>
-                              <td className="p-3.5">{s.durasi_menit} Mnt (Min. Submit: {s.minimal_menit_submit}m)</td>
+                              <td className="p-3.5">
+                                <div className="font-bold text-white">{s.durasi_menit} Mnt <span className="text-amber-400 font-normal">(Min. Submit: {s.minimal_menit_submit}m)</span></div>
+                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-[10px] font-extrabold text-sky-300">
+                                  <BookOpen className="w-3 h-3 text-sky-400" />
+                                  <span>Ditarik: {tarikPG} PG + {tarikUraian} Uraian ({tarikPG + tarikUraian} Soal)</span>
+                                </div>
+                              </td>
                               <td className="p-3.5">
                                 <div className="flex flex-wrap items-center gap-2">
                                   {/* Quick Toggle ON/OFF Acak Soal & Jawaban (1 Toggle Terpadu) */}
@@ -6652,6 +6663,116 @@
                   </div>
                 </div>
 
+                {/* PENGATURAN JUMLAH SOAL PG DAN URAIAN YANG DITARIK DARI BANK SOAL */}
+                {(() => {
+                  const soalPaketTerpilih = masterSoal.filter(q => String(q.id_paket) === String(sesiModal.id_paket));
+                  const stokPG = soalPaketTerpilih.filter(q => q.tipe_soal === 'PG').length;
+                  const stokUraian = soalPaketTerpilih.filter(q => q.tipe_soal === 'Uraian').length;
+                  const curLimitPG = Number(sesiModal.limit_soal_pg) || 0;
+                  const curLimitUraian = Number(sesiModal.limit_soal_uraian) || 0;
+
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-sky-500/30 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-sky-400" />
+                          <div>
+                            <span className="font-extrabold text-sky-300 uppercase text-[11px] tracking-wider block">
+                              Pengaturan Jumlah Soal PG & Uraian yang Ditarik dari Bank Soal
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              Stok tersedia pada Paket Bank Soal terpilih: <strong className="text-emerald-400">{stokPG} butir PG</strong> dan <strong className="text-amber-300">{stokUraian} butir Uraian</strong>
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSesiModal({
+                            ...sesiModal,
+                            limit_soal_pg: stokPG,
+                            limit_soal_uraian: stokUraian
+                          })}
+                          className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/30 font-extrabold text-[10px] transition"
+                        >
+                          Tarik Semua Soal Paket ({stokPG} PG + {stokUraian} Uraian)
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] font-bold text-indigo-300 uppercase">Jumlah Soal PG Ditarik</label>
+                            <span className="text-[10px] font-mono text-slate-400">Stok: {stokPG} PG</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={stokPG > 0 ? stokPG : 200}
+                              value={sesiModal.limit_soal_pg ?? 0}
+                              onChange={e => {
+                                const val = Math.max(0, Number(e.target.value));
+                                const clamped = stokPG > 0 ? Math.min(stokPG, val) : val;
+                                setSesiModal({ ...sesiModal, limit_soal_pg: clamped });
+                              }}
+                              className="w-full bg-slate-950 border border-indigo-500/50 rounded-xl px-3 py-1.5 text-white font-mono font-bold text-sm outline-none focus:border-indigo-400"
+                            />
+                            {stokPG > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setSesiModal({ ...sesiModal, limit_soal_pg: stokPG })}
+                                className="px-2 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-bold shrink-0"
+                              >
+                                Maks ({stokPG})
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] font-bold text-amber-300 uppercase">Jumlah Soal Uraian Ditarik</label>
+                            <span className="text-[10px] font-mono text-slate-400">Stok: {stokUraian} Uraian</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={stokUraian > 0 ? stokUraian : 100}
+                              value={sesiModal.limit_soal_uraian ?? 0}
+                              onChange={e => {
+                                const val = Math.max(0, Number(e.target.value));
+                                const clamped = stokUraian > 0 ? Math.min(stokUraian, val) : val;
+                                setSesiModal({ ...sesiModal, limit_soal_uraian: clamped });
+                              }}
+                              className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-1.5 text-white font-mono font-bold text-sm outline-none focus:border-amber-400"
+                            />
+                            {stokUraian > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setSesiModal({ ...sesiModal, limit_soal_uraian: stokUraian })}
+                                className="px-2 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-[10px] font-bold shrink-0"
+                              >
+                                Maks ({stokUraian})
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-emerald-950/25 border border-emerald-500/40 flex flex-col justify-center items-center text-center">
+                          <span className="text-[10px] font-extrabold uppercase text-emerald-400">Total Soal Dikerjakan Peserta</span>
+                          <div className="text-lg font-black text-white font-mono mt-0.5">
+                            {curLimitPG + curLimitUraian} Butir Soal
+                          </div>
+                          <span className="text-[10px] text-slate-300 font-semibold">
+                            ({curLimitPG} Soal PG + {curLimitUraian} Soal Uraian)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* PANEL TOGGLE ON/OFF ACAK SOAL & JAWABAN, SISTEM PROTEKSI ANTI-KECURANGAN & TOKEN OTOMATIS */}
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="font-bold text-indigo-400 uppercase text-[11px] tracking-wider">
@@ -6974,6 +7095,9 @@
                       </div>
                       <div className="pt-1 text-[11px] text-slate-300">
                         Durasi: <strong className="text-white">{previewSesiModal.durasi_menit} Menit</strong> • Min. Submit: <strong className="text-amber-300">{previewSesiModal.minimal_menit_submit} Menit</strong>
+                      </div>
+                      <div className="pt-1 text-[11px] text-sky-300 font-bold">
+                        Soal Ditarik: {previewSesiModal.limit_soal_pg ?? 0} PG + {previewSesiModal.limit_soal_uraian ?? 0} Uraian ({(Number(previewSesiModal.limit_soal_pg) || 0) + (Number(previewSesiModal.limit_soal_uraian) || 0)} Soal)
                       </div>
                     </div>
 
