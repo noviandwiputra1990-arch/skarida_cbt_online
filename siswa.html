@@ -249,13 +249,28 @@
     };
 
     // Menyusun kertas soal & mengacak posisi opsi A-E secara unik (tanpa pernah menduplikasi opsi)
-    const buildOrderedExamQuestions = (sourceQuestions, isRandomActive) => {
+    // serta membatasi jumlah soal PG & Uraian sesuai konfigurasi sesi (limitPG & limitUraian)
+    const buildOrderedExamQuestions = (sourceQuestions, isRandomActive, limitPG = null, limitUraian = null) => {
       let pgRaw = (sourceQuestions || []).filter(q => String(q.tipe_soal || 'PG').toUpperCase() === 'PG');
       let uraianRaw = (sourceQuestions || []).filter(q => String(q.tipe_soal || 'PG').toUpperCase() !== 'PG');
 
       if (isRandomActive) {
         pgRaw = shuffleArray(pgRaw);
         uraianRaw = shuffleArray(uraianRaw);
+      }
+
+      if (limitPG !== null && limitPG !== undefined && Number(limitPG) > 0) {
+        pgRaw = pgRaw.slice(0, Number(limitPG));
+      } else if (limitPG !== null && Number(limitPG) === 0 && pgRaw.length > 0 && Number(limitUraian) > 0) {
+        pgRaw = [];
+      }
+
+      if (limitUraian !== null && limitUraian !== undefined && Number(limitUraian) >= 0) {
+        if (Number(limitUraian) > 0) {
+          uraianRaw = uraianRaw.slice(0, Number(limitUraian));
+        } else if (Number(limitPG) > 0) {
+          uraianRaw = [];
+        }
       }
 
       const processedPG = pgRaw.map(q => {
@@ -733,6 +748,8 @@
               waktu_tutup: String(s.waktu_tutup || ''),
               durasi_menit: Number(s.durasi_menit) || 60,
               minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
+              limit_soal_pg: s.limit_soal_pg !== undefined && s.limit_soal_pg !== '' ? Number(s.limit_soal_pg) : undefined,
+              limit_soal_uraian: s.limit_soal_uraian !== undefined && s.limit_soal_uraian !== '' ? Number(s.limit_soal_uraian) : undefined,
               is_acak_soal: parseBool(s.is_acak_soal, true),
               is_proctoring_active: parseBool(s.is_proctoring_active, true),
               require_token: parseBool(s.require_token, true),
@@ -804,6 +821,8 @@
                   waktu_tutup: String(s.waktu_tutup || ''),
                   durasi_menit: Number(s.durasi_menit) || 60,
                   minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
+                  limit_soal_pg: s.limit_soal_pg !== undefined && s.limit_soal_pg !== '' ? Number(s.limit_soal_pg) : undefined,
+                  limit_soal_uraian: s.limit_soal_uraian !== undefined && s.limit_soal_uraian !== '' ? Number(s.limit_soal_uraian) : undefined,
                   is_acak_soal: parseBool(s.is_acak_soal, true),
                   is_proctoring_active: parseBool(s.is_proctoring_active, true),
                   token: String(s.token || ''),
@@ -1249,8 +1268,13 @@
         const sourceQuestions = soalPaket.length > 0 ? soalPaket : soalBankState;
         const isRandomActive = sesiTarget.is_acak_soal !== false;
 
-        // Susun & acak soal + posisi opsi A-E secara 1-to-1 (tanpa duplikasi opsi!)
-        const ordered = buildOrderedExamQuestions(sourceQuestions, isRandomActive);
+        // Susun & acak soal + posisi opsi A-E secara 1-to-1 serta tarik sejumlah limit_soal_pg & limit_soal_uraian
+        const ordered = buildOrderedExamQuestions(
+          sourceQuestions,
+          isRandomActive,
+          sesiTarget.limit_soal_pg,
+          sesiTarget.limit_soal_uraian
+        );
 
         const nowMs = Date.now();
         const nowStr = getWaktuIndonesiaString();
@@ -1684,6 +1708,14 @@
                               <span className="text-slate-400">Durasi: <strong className="text-white">{sesi.durasi_menit} Menit</strong></span>
                               <span className="text-amber-400 font-semibold">Min. Submit: {sesi.minimal_menit_submit}m</span>
                             </div>
+                            {(sesi.limit_soal_pg !== undefined || sesi.limit_soal_uraian !== undefined) && (
+                              <div className="flex justify-between pt-1 border-t border-slate-800/80">
+                                <span className="text-slate-400">Jumlah Soal Ujian:</span>
+                                <span className="font-bold text-sky-400">
+                                  {Number(sesi.limit_soal_pg) || 0} PG + {Number(sesi.limit_soal_uraian) || 0} Uraian
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {isFinished ? (
