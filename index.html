@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal Login SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
-  <link rel="icon" type="image/png" href="logo_skarida.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -196,13 +195,25 @@
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
+    const isPreviewSandboxEnv = () => {
+      if (typeof window === 'undefined') return true;
+      const { protocol, hostname, pathname } = window.location;
+      if (protocol === 'blob:' || protocol === 'about:' || protocol === 'data:') return true;
+      if (!hostname || hostname.includes('usercontent.goog') || hostname.includes('webcontainer') || hostname.includes('codesandbox') || hostname.includes('stackblitz')) return true;
+      if (pathname && pathname.includes('srcdoc')) return true;
+      return false;
+    };
+
+    let cachedLogoResolvedSrc = isPreviewSandboxEnv() ? LOGO_DATA_URI : 'logo_skarida.png';
+
     function SkaridaLogo({ className = 'w-12 h-12' }) {
+      const [logoSrc, setLogoSrc] = useState(cachedLogoResolvedSrc);
       return (
         <img
-          src="logo_skarida.png"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = LOGO_DATA_URI;
+          src={logoSrc}
+          onError={() => {
+            cachedLogoResolvedSrc = LOGO_DATA_URI;
+            setLogoSrc(LOGO_DATA_URI);
           }}
           alt="Logo SMK Negeri 2 Tegalsari"
           className={`${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`}
@@ -237,7 +248,7 @@
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = 'logo_skarida.png';
+        link.href = cachedLogoResolvedSrc;
       }, []);
 
       useEffect(() => {
