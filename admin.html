@@ -42,101 +42,118 @@
       } catch (_) {}
     };
 
-    const ICON_PATHS = {
-      Activity: (<g><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></g>),
-      Award: (<g><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></g>),
-      Building2: (<g><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></g>),
-      GraduationCap: (<g><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></g>),
-      ShieldCheck: (<g><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></g>),
-      ShieldAlert: (<g><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></g>),
-      Users: (<g><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></g>),
-      BookOpen: (<g><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></g>),
-      CalendarClock: (<g><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h5" /><circle cx="17.5" cy="17.5" r="4.5" /><path d="M17.5 15.5v2l1.5 1" /></g>),
-      FileCheck2: (<g><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2 14 8 20 8" /><path d="m3 15 2 2 4-4" /></g>),
-      Plus: (<g><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></g>),
-      Edit3: (<g><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></g>),
-      Trash2: (<g><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></g>),
-      Eye: (<g><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></g>),
-      Search: (<g><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></g>),
-      RefreshCw: (<g><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></g>),
-      Printer: (<g><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></g>),
-      Upload: (<g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></g>),
-      FileSpreadsheet: (<g><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h2" /><path d="M8 17h2" /><path d="M14 13h2" /><path d="M14 17h2" /></g>),
-      FileText: (<g><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></g>),
-      Smartphone: (<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></g>),
-      Clock: (<g><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></g>),
-      Timer: (<g><line x1="10" y1="2" x2="14" y2="2" /><line x1="12" y1="14" x2="15" y2="11" /><circle cx="12" cy="14" r="8" /></g>),
-      Database: (<g><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></g>),
-      Lock: (<g><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></g>),
-      KeyRound: (<g><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" /><circle cx="16.5" cy="7.5" r=".5" /></g>),
-      Ban: (<g><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></g>),
-      CheckCircle2: (<g><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></g>),
-      AlertTriangle: (<g><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>),
-      PieChart: (<g><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></g>),
-      BarChart3: (<g><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></g>),
-      UserCircle2: (<g><circle cx="12" cy="12" r="10" /><circle cx="12" cy="10" r="3" /><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" /></g>),
-      Image: (<g><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></g>),
-      Layers: (<g><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></g>),
-      ChevronRight: (<g><polyline points="9 18 15 12 9 6" /></g>),
-      ChevronLeft: (<g><polyline points="15 18 9 12 15 6" /></g>),
-      X: (<g><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></g>),
-      Check: (<g><polyline points="20 6 9 17 4 12" /></g>),
-      Download: (<g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></g>),
-      Flag: (<g><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></g>),
-      LayoutGrid: (<g><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></g>)
+    const LUCIDE_ICON_PATHS = {
+      Activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+      Award: '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
+      Building2: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+      GraduationCap: '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+      ShieldCheck: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+      ShieldAlert: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      Users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      UserCircle2: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>',
+      BookOpen: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      CalendarClock: '<path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5 16 16.25V14"/><circle cx="16" cy="16" r="6"/>',
+      FileCheck2: '<path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="m3 15 2 2 4-4"/>',
+      FileSpreadsheet: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/>',
+      FileText: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>',
+      Database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>',
+      KeyRound: '<path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/>',
+      RefreshCw: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+      Lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      Unlock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+      AlertTriangle: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      CheckCircle2: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+      Clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      Timer: '<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>',
+      Printer: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/>',
+      Plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+      Search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+      Filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+      Eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+      Shuffle: '<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><polyline points="18 2 22 6 18 10"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><polyline points="18 14 22 18 18 22"/>',
+      Layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+      Upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+      Download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+      ChevronRight: '<polyline points="9 18 15 12 9 6"/>',
+      ChevronLeft: '<polyline points="15 18 9 12 15 6"/>',
+      Image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+      Edit3: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+      Trash2: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+      XCircle: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+      BarChart3: '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+      PieChart: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+      Smartphone: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+      Ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      Check: '<polyline points="20 6 9 17 4 12"/>',
+      Play: '<polygon points="5 3 19 12 5 21 5 3"/>',
+      LogOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+      LayoutGrid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+      Flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+      Maximize2: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
+      Wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>',
+      ZoomIn: '<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/>'
     };
 
-    const makeIcon = (name) => ({ className = 'w-4 h-4', ...rest }) => (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...rest}>
-        {ICON_PATHS[name] || ICON_PATHS.Activity}
-      </svg>
-    );
+    const LucideIcons = new Proxy({}, {
+      get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => {
+        const rawSvg = LUCIDE_ICON_PATHS[prop] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/>';
+        return (
+          <svg
+            className={`inline-block shrink-0 ${className}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            dangerouslySetInnerHTML={{ __html: rawSvg }}
+            {...rest}
+          />
+        );
+      }
+    });
 
-    const Activity = makeIcon('Activity');
-    const Award = makeIcon('Award');
-    const Building2 = makeIcon('Building2');
-    const GraduationCap = makeIcon('GraduationCap');
-    const ShieldCheck = makeIcon('ShieldCheck');
-    const ShieldAlert = makeIcon('ShieldAlert');
-    const Users = makeIcon('Users');
-    const BookOpen = makeIcon('BookOpen');
-    const CalendarClock = makeIcon('CalendarClock');
-    const FileCheck2 = makeIcon('FileCheck2');
-    const Plus = makeIcon('Plus');
-    const Edit3 = makeIcon('Edit3');
-    const Trash2 = makeIcon('Trash2');
-    const Eye = makeIcon('Eye');
-    const Search = makeIcon('Search');
-    const RefreshCw = makeIcon('RefreshCw');
-    const Printer = makeIcon('Printer');
-    const Upload = makeIcon('Upload');
-    const FileSpreadsheet = makeIcon('FileSpreadsheet');
-    const FileText = makeIcon('FileText');
-    const Smartphone = makeIcon('Smartphone');
-    const Clock = makeIcon('Clock');
-    const Timer = makeIcon('Timer');
-    const Database = makeIcon('Database');
-    const Lock = makeIcon('Lock');
-    const KeyRound = makeIcon('KeyRound');
-    const Ban = makeIcon('Ban');
-    const CheckCircle2 = makeIcon('CheckCircle2');
-    const AlertTriangle = makeIcon('AlertTriangle');
-    const PieChart = makeIcon('PieChart');
-    const BarChart3 = makeIcon('BarChart3');
-    const UserCircle2 = makeIcon('UserCircle2');
-    const ImageIcon = makeIcon('Image');
-    const Layers = makeIcon('Layers');
-    const ChevronRight = makeIcon('ChevronRight');
-    const ChevronLeft = makeIcon('ChevronLeft');
-    const X = makeIcon('X');
-    const Check = makeIcon('Check');
-    const Download = makeIcon('Download');
-    const Flag = makeIcon('Flag');
-    const LayoutGrid = makeIcon('LayoutGrid');
+    const {
+      ShieldAlert, Users, BookOpen, CalendarClock, FileCheck2, Activity,
+      KeyRound, RefreshCw, Lock, Unlock, AlertTriangle, CheckCircle2, Clock,
+      FileSpreadsheet, Printer, Plus, Search, Filter, Eye, Shuffle, Layers,
+      Upload, ChevronRight, ChevronLeft, FileText, Image: ImageIcon, Edit3,
+      Trash2, XCircle, BarChart3, PieChart, UserCircle2, Smartphone,
+      ShieldCheck, Timer, Ban, X, Check, GraduationCap, Building2, Award,
+      Play, LogOut, LayoutGrid, Flag, Maximize2, Wifi, ZoomIn, Download, Database
+    } = LucideIcons;
 
-    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_tzJh10HSv1eknwY01ChjD3g-Yj_xuONQvGNvr85koAepLgWuKJkoi8P0uha3YIxcMQ/exec";
+    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+      <defs>
+        <path id="topArc" d="M 52,120 A 68,68 0 1,1 188,120" />
+        <path id="botArc" d="M 192,120 A 72,72 0 1,1 48,120" />
+      </defs>
+      <g transform="translate(120,120)">
+        <path d="M0,-116 C18,-98 30,-95 36,-110 C45,-88 58,-82 68,-95 C68,-72 78,-62 95,-68 C82,-48 88,-35 110,-36 C95,-20 98,-8 116,0 C98,8 95,20 110,36 C88,35 82,48 95,68 C78,62 68,72 68,95 C58,82 45,88 36,110 C30,95 18,98 0,116 C-18,98 -30,95 -36,110 C-45,88 -58,82 -68,95 C-68,72 -78,62 -95,68 C-82,48 -88,35 -110,36 C-95,20 -98,8 -116,0 C-98,-8 -95,-20 -110,-36 C-88,-35 -82,-48 -95,-68 C-78,-62 -68,-72 -68,-95 C-58,-82 -45,-88 -36,-110 C-30,-95 -18,-98 0,-116 Z" fill="#1a1464" stroke="#1a1464" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M0,-105 C14,-90 26,-88 33,-98 C40,-80 52,-75 62,-85 C62,-66 70,-58 85,-62 C75,-45 80,-33 98,-33 C88,-18 90,-7 105,0 C90,7 88,18 98,33 C80,33 75,45 85,62 C70,58 62,66 62,85 C52,75 40,80 33,98 C26,88 14,90 0,105 C-14,90 -26,88 -33,98 C-40,80 -52,75 -62,85 C-62,66 -70,58 -85,62 C-75,45 -80,33 -98,33 C-88,18 -90,7 -105,0 C-90,-7 -88,-18 -98,-33 C-80,-33 -75,-45 -85,-62 C-70,-58 -62,-66 -62,-85 C-52,-75 -40,-80 -33,-98 C-26,-88 -14,-90 0,-105 Z" fill="#0095d9"/>
+      </g>
+      <circle cx="120" cy="120" r="82" fill="#0095d9" stroke="#1a1464" stroke-width="5"/>
+      <circle cx="120" cy="120" r="56" fill="#1a1464" stroke="#0095d9" stroke-width="2"/>
+      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="13.5" letter-spacing="0.8">
+        <textPath href="#topArc" startOffset="50%" text-anchor="middle">SMK NEGERI 2 TEGALSARI</textPath>
+      </text>
+      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="12.5" letter-spacing="0.6">
+        <textPath href="#botArc" startOffset="50%" text-anchor="middle">TEGALSARI - BANYUWANGI</textPath>
+      </text>
+      <polygon points="120,69 123,77 131,77 125,82 127,90 120,85 113,90 115,82 109,77 117,77" fill="#ffde00"/>
+      <path d="M92,145 C78,128 80,98 98,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
+      <path d="M148,145 C162,128 160,98 142,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="120" cy="120" r="26" fill="#0095d9" stroke="#ffde00" stroke-width="2" stroke-dasharray="6 3"/>
+      <circle cx="120" cy="120" r="20" fill="#ffde00" stroke="#1a1464" stroke-width="1.5"/>
+      <ellipse cx="120" cy="120" rx="18" ry="9" fill="none" stroke="#1a1464" stroke-width="1.2"/>
+      <ellipse cx="120" cy="120" rx="9" ry="18" fill="none" stroke="#1a1464" stroke-width="1.2"/>
+      <line x1="102" y1="120" x2="138" y2="120" stroke="#1a1464" stroke-width="1.2"/>
+      <line x1="120" y1="102" x2="120" y2="138" stroke="#1a1464" stroke-width="1.2"/>
+      <path d="M109,124 L120,127 L131,124 L131,115 L120,118 L109,115 Z" fill="#ffffff" stroke="#e11d48" stroke-width="1.5"/>
+      <path d="M86,152 Q120,162 154,152 L150,163 Q120,172 90,163 Z" fill="#0095d9" stroke="#ffffff" stroke-width="1"/>
+    </svg>`;
 
-    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><defs><path id="topArc" d="M 52,120 A 68,68 0 1,1 188,120" /><path id="botArc" d="M 192,120 A 72,72 0 1,1 48,120" /></defs><g transform="translate(120,120)"><path d="M0,-116 C18,-98 30,-95 36,-110 C45,-88 58,-82 68,-95 C68,-72 78,-62 95,-68 C82,-48 88,-35 110,-36 C95,-20 98,-8 116,0 C98,8 95,20 110,36 C88,35 82,48 95,68 C78,62 68,72 68,95 C58,82 45,88 36,110 C30,95 18,98 0,116 C-18,98 -30,95 -36,110 C-45,88 -58,82 -68,95 C-68,72 -78,62 -95,68 C-82,48 -88,35 -110,36 C-95,20 -98,8 -116,0 C-98,-8 -95,-20 -110,-36 C-88,-35 -82,-48 -95,-68 C-78,-62 -68,-72 -68,-95 C-58,-82 -45,-88 -36,-110 C-30,-95 -18,-98 0,-116 Z" fill="#1a1464" stroke="#1a1464" stroke-width="4" stroke-linejoin="round"/><path d="M0,-105 C14,-90 26,-88 33,-98 C40,-80 52,-75 62,-85 C62,-66 70,-58 85,-62 C75,-45 80,-33 98,-33 C88,-18 90,-7 105,0 C90,7 88,18 98,33 C80,33 75,45 85,62 C70,58 62,66 62,85 C52,75 40,80 33,98 C26,88 14,90 0,105 C-14,90 -26,88 -33,98 C-40,80 -52,75 -62,85 C-62,66 -70,58 -85,62 C-75,45 -80,33 -98,33 C-88,18 -90,7 -105,0 C-90,-7 -88,-18 -98,-33 C-80,-33 -75,-45 -85,-62 C-70,-58 -62,-66 -62,-85 C-52,-75 -40,-80 -33,-98 C-26,-88 -14,-90 0,-105 Z" fill="#0095d9"/></g><circle cx="120" cy="120" r="82" fill="#0095d9" stroke="#1a1464" stroke-width="5"/><circle cx="120" cy="120" r="56" fill="#1a1464" stroke="#0095d9" stroke-width="2"/><text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="13.5" letter-spacing="0.8"><textPath href="#topArc" startOffset="50%" text-anchor="middle">SMK NEGERI 2 TEGALSARI</textPath></text><text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="12.5" letter-spacing="0.6"><textPath href="#botArc" startOffset="50%" text-anchor="middle">TEGALSARI - BANYUWANGI</textPath></text><polygon points="120,69 123,77 131,77 125,82 127,90 120,85 113,90 115,82 109,77 117,77" fill="#ffde00"/><path d="M92,145 C78,128 80,98 98,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/><path d="M148,145 C162,128 160,98 142,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/><circle cx="120" cy="120" r="26" fill="#0095d9" stroke="#ffde00" stroke-width="2" stroke-dasharray="6 3"/><circle cx="120" cy="120" r="20" fill="#ffde00" stroke="#1a1464" stroke-width="1.5"/><ellipse cx="120" cy="120" rx="18" ry="9" fill="none" stroke="#1a1464" stroke-width="1.2"/><ellipse cx="120" cy="120" rx="9" ry="18" fill="none" stroke="#1a1464" stroke-width="1.2"/><line x1="102" y1="120" x2="138" y2="120" stroke="#1a1464" stroke-width="1.2"/><line x1="120" y1="102" x2="120" y2="138" stroke="#1a1464" stroke-width="1.2"/><path d="M109,124 L120,127 L131,124 L131,115 L120,118 L109,115 Z" fill="#ffffff" stroke="#e11d48" stroke-width="1.5"/><path d="M86,152 Q120,162 154,152 L150,163 Q120,172 90,163 Z" fill="#0095d9" stroke="#ffffff" stroke-width="1"/></svg>`;
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
     function SkaridaLogo({ className = 'w-10 h-10' }) {
@@ -151,7 +168,8 @@
       );
     }
 
-    // Seluruh state awal dikosongkan (tanpa data dummy) dan langsung dimuat dari Database Google Sheets
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_tzJh10HSv1eknwY01ChjD3g-Yj_xuONQvGNvr85koAepLgWuKJkoi8P0uha3YIxcMQ/exec";
+
     const INITIAL_MASTER_UJIAN = [];
     const INITIAL_MASTER_JURUSAN = [];
     const INITIAL_MASTER_KELAS = [];
@@ -159,32 +177,77 @@
     const INITIAL_STAFF_USERS = [];
     const INITIAL_PAKET = [];
     const INITIAL_SOAL = [];
+    const INITIAL_SESI = [];
+    const INITIAL_PESERTA_UJIAN = [];
 
-    // Generator Ilustrasi Diagram SVG Otomatis jika nama file gambar berupa nama file lokal
+    const TINGKAT_LIST = ['X', 'XI', 'XII'];
+    const AGAMA_LIST = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
+    const ZONA_WAKTU_INDONESIA = [
+      { id: 'WIB', label: 'WIB (Waktu Indonesia Barat • UTC+7)', tz: 'Asia/Jakarta' },
+      { id: 'WITA', label: 'WITA (Waktu Indonesia Tengah • UTC+8)', tz: 'Asia/Makassar' },
+      { id: 'WIT', label: 'WIT (Waktu Indonesia Timur • UTC+9)', tz: 'Asia/Jayapura' }
+    ];
+
+    const inferTingkatFromKelas = (namaKelas, fallback = 'X') => {
+      const str = String(namaKelas || '').trim().toUpperCase();
+      if (str.startsWith('XII')) return 'XII';
+      if (str.startsWith('XI')) return 'XI';
+      if (str.startsWith('X')) return 'X';
+      return fallback;
+    };
+
+    const getCurrentIndonesianClock = (zona = 'WIB') => {
+      const tzName = zona === 'WITA' ? 'Asia/Makassar' : zona === 'WIT' ? 'Asia/Jayapura' : 'Asia/Jakarta';
+      try {
+        const fmt = new Intl.DateTimeFormat('id-ID', {
+          timeZone: tzName,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        return `${fmt.format(new Date()).replace(/\./g, ':')} ${zona}`;
+      } catch (_) {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${zona}`;
+      }
+    };
+
+    const getIndonesianDateTimeLocal = (zona = 'WIB', addMinutes = 0) => {
+      const tzName = zona === 'WITA' ? 'Asia/Makassar' : zona === 'WIT' ? 'Asia/Jayapura' : 'Asia/Jakarta';
+      const target = new Date(Date.now() + addMinutes * 60000);
+      try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tzName,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).formatToParts(target);
+        const getP = (type) => parts.find(p => p.type === type)?.value || '00';
+        const hh = getP('hour') === '24' ? '00' : getP('hour');
+        return `${getP('year')}-${getP('month')}-${getP('day')}T${hh}:${getP('minute')}`;
+      } catch (_) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+      }
+    };
+
     const buildSvgDiagramPlaceholder = (filename) => {
       const cleanName = String(filename || 'Gambar Soal').replace(/[<>&"']/g, '');
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="520" height="240" viewBox="0 0 520 240">
-        <defs>
-          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#0f172a"/>
-            <stop offset="100%" stop-color="#1e1b4b"/>
-          </linearGradient>
-        </defs>
-        <rect width="520" height="240" rx="16" fill="url(#bg)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6 4"/>
-        <g stroke="#334155" stroke-width="1" opacity="0.45">
-          <line x1="0" y1="60" x2="520" y2="60"/><line x1="0" y1="120" x2="520" y2="120"/><line x1="0" y1="180" x2="520" y2="180"/>
-          <line x1="130" y1="0" x2="130" y2="240"/><line x1="260" y1="0" x2="260" y2="240"/><line x1="390" y1="0" x2="390" y2="240"/>
-        </g>
+        <rect width="520" height="240" rx="16" fill="#0f172a" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6 4"/>
         <rect x="150" y="45" width="220" height="90" rx="10" fill="#0284c7" fill-opacity="0.2" stroke="#38bdf8" stroke-width="2"/>
         <circle cx="260" cy="90" r="24" fill="#38bdf8" fill-opacity="0.25" stroke="#7dd3fc" stroke-width="2"/>
-        <line x1="115" y1="90" x2="405" y2="90" stroke="#facc15" stroke-width="2" stroke-dasharray="5 3"/>
-        <text x="260" y="168" text-anchor="middle" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-weight="bold" font-size="14">LAMPIRAN VISUAL SOAL / OPSI</text>
+        <text x="260" y="168" text-anchor="middle" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-weight="bold" font-size="14">LAMPIRAN GAMBAR SOAL / OPSI</text>
         <text x="260" y="194" text-anchor="middle" fill="#38bdf8" font-family="monospace" font-weight="bold" font-size="13">${cleanName}</text>
       </svg>`;
       return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
     };
 
-    // Resolver cerdas untuk menentukan sumber URL gambar (DataURL Base64, URL eksternal, atau nama file)
     const resolveImageSrc = (fileVal, previewVal) => {
       const candidate = String(previewVal || fileVal || '').trim();
       if (!candidate) return '';
@@ -195,78 +258,65 @@
       if (strFile.startsWith('data:image') || strFile.startsWith('http://') || strFile.startsWith('https://') || strFile.startsWith('blob:')) {
         return strFile;
       }
-      if (strFile) {
-        return buildSvgDiagramPlaceholder(strFile);
-      }
+      if (strFile) return buildSvgDiagramPlaceholder(strFile);
       return '';
     };
 
-    const getCleanFileName = (fileVal, fallbackLabel = 'gambar_terlampir.jpg') => {
-      const s = String(fileVal || '').trim();
-      if (!s) return '';
-      if (s.startsWith('data:image')) return fallbackLabel;
+    const getCleanFileName = (val, fallback = 'gambar.jpg') => {
+      if (!val) return '';
+      const s = String(val).trim();
+      if (s.startsWith('data:image')) return fallback;
+      if (s.length > 45) return s.slice(0, 42) + '...';
       return s;
     };
 
-    const INITIAL_SESI = [];
-    const INITIAL_PESERTA_UJIAN = [];
+    const parseWaktuJadwalIndonesia = (rawStr, zona = 'WIB') => {
+      if (!rawStr) return null;
+      const str = String(rawStr).trim().replace(/^'/, '');
+      if (!str) return null;
 
-    const TINGKAT_LIST = ['X', 'XI', 'XII'];
-    const AGAMA_LIST = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
+      const offsetMap = { WIB: '+07:00', WITA: '+08:00', WIT: '+09:00' };
+      const tzOffset = offsetMap[String(zona || 'WIB').toUpperCase()] || '+07:00';
+      const pad2 = (n) => String(n).padStart(2, '0');
 
-    const inferTingkatFromKelas = (namaKelas, fallback = 'X') => {
-      const str = String(namaKelas || '').trim().toUpperCase();
-      if (str.startsWith('XII')) return 'XII';
-      if (str.startsWith('XI')) return 'XI';
-      if (str.startsWith('X')) return 'X';
-      return fallback;
+      const isoLocalMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+      if (isoLocalMatch) {
+        const [, y, m, d, hh, mm, ss = '00'] = isoLocalMatch;
+        const parsed = new Date(`${y}-${pad2(m)}-${pad2(d)}T${pad2(hh)}:${pad2(mm)}:${pad2(ss)}${tzOffset}`);
+        return isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[T ](\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?)?$/);
+      if (dmyMatch) {
+        const [, d, m, y, hh = '00', mm = '00', ss = '00'] = dmyMatch;
+        const parsed = new Date(`${y}-${pad2(m)}-${pad2(d)}T${pad2(hh)}:${pad2(mm)}:${pad2(ss)}${tzOffset}`);
+        return isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      const fallback = new Date(str.replace(' ', 'T'));
+      return isNaN(fallback.getTime()) ? null : fallback;
     };
 
-    // Helper Waktu Indonesia (WIB UTC+7, WITA UTC+8, WIT UTC+9)
-    const ZONA_WAKTU_INDONESIA = [
-      { id: 'WIB', label: 'WIB (Waktu Indonesia Barat • UTC+7)', tz: 'Asia/Jakarta', offsetHours: 7 },
-      { id: 'WITA', label: 'WITA (Waktu Indonesia Tengah • UTC+8)', tz: 'Asia/Makassar', offsetHours: 8 },
-      { id: 'WIT', label: 'WIT (Waktu Indonesia Timur • UTC+9)', tz: 'Asia/Jayapura', offsetHours: 9 }
-    ];
-
-    const getIndonesianDateTimeLocal = (zona = 'WIB', addMinutes = 0) => {
-      const zObj = ZONA_WAKTU_INDONESIA.find(z => z.id === zona) || ZONA_WAKTU_INDONESIA[0];
-      const now = new Date(Date.now() + addMinutes * 60000);
-      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-      const idTime = new Date(utcMs + zObj.offsetHours * 3600000);
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${idTime.getFullYear()}-${pad(idTime.getMonth() + 1)}-${pad(idTime.getDate())}T${pad(idTime.getHours())}:${pad(idTime.getMinutes())}`;
-    };
-
-    const getCurrentIndonesianClock = (zona = 'WIB') => {
-      const zObj = ZONA_WAKTU_INDONESIA.find(z => z.id === zona) || ZONA_WAKTU_INDONESIA[0];
+    const formatJadwalIndonesia = (isoDateTimeStr, zona = 'WIB') => {
+      if (!isoDateTimeStr) return '-';
+      const d = parseWaktuJadwalIndonesia(isoDateTimeStr, zona);
+      if (!d || isNaN(d.getTime())) return `${String(isoDateTimeStr).replace('T', ' ')} ${zona}`;
+      const tzName = zona === 'WITA' ? 'Asia/Makassar' : zona === 'WIT' ? 'Asia/Jayapura' : 'Asia/Jakarta';
       try {
-        const formatter = new Intl.DateTimeFormat('id-ID', {
-          timeZone: zObj.tz,
+        const fmt = new Intl.DateTimeFormat('id-ID', {
+          timeZone: tzName,
           weekday: 'short',
           day: '2-digit',
           month: 'short',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit',
           hour12: false
         });
-        return `${formatter.format(new Date()).replace(/\./g, ':')} ${zObj.id}`;
+        return `${fmt.format(d).replace(/\./g, ':')} ${zona}`;
       } catch (_) {
-        return `${getIndonesianDateTimeLocal(zona).replace('T', ' ')} ${zObj.id}`;
+        return `${String(isoDateTimeStr).replace('T', ' ')} ${zona}`;
       }
-    };
-
-    const formatJadwalIndonesia = (isoDateTimeStr, zona = 'WIB') => {
-      if (!isoDateTimeStr) return '-';
-      const clean = String(isoDateTimeStr).trim().replace(' ', 'T');
-      const d = new Date(clean);
-      if (isNaN(d.getTime())) return `${String(isoDateTimeStr).replace('T', ' ')} ${zona}`;
-      const bulanIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      const hariIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${hariIndo[d.getDay()]}, ${pad(d.getDate())} ${bulanIndo[d.getMonth()]} ${d.getFullYear()} • ${pad(d.getHours())}:${pad(d.getMinutes())} ${zona}`;
     };
 
     // Helper pencocokan apakah Kelas atau Peserta termasuk dalam ketetapan Paket Bank Soal Mapel
@@ -1652,8 +1702,9 @@
         const activeIds = new Set();
 
         sesiUjian.forEach(s => {
-          const buka = s.waktu_buka ? new Date(String(s.waktu_buka).replace(' ', 'T')) : null;
-          const tutup = s.waktu_tutup ? new Date(String(s.waktu_tutup).replace(' ', 'T')) : null;
+          const zona = s.zona_waktu || zonaWaktuIndonesia || 'WIB';
+          const buka = parseWaktuJadwalIndonesia(s.waktu_buka, zona);
+          const tutup = parseWaktuJadwalIndonesia(s.waktu_tutup, zona);
           const isWithinSchedule = buka && tutup && !isNaN(buka) && !isNaN(tutup) && now >= buka && now <= tutup;
           const hasWorkingParticipants = pesertaUjian.some(
             pu => String(pu.id_sesi) === String(s.id_sesi) && pu.status_pengerjaan === 'sedang_mengerjakan'
@@ -1668,7 +1719,7 @@
           activeIds.add(String(sesiUjian[0].id_sesi));
         }
         return activeIds;
-      }, [sesiUjian, pesertaUjian]);
+      }, [sesiUjian, pesertaUjian, zonaWaktuIndonesia]);
 
       const filteredCommandPeserta = useMemo(() => {
         return pesertaUjian.filter(pu => {
@@ -2019,8 +2070,8 @@
           id_paket: pkt?.id_paket || 201,
           nama_sesi_spesifik: pkt ? `Ujian ${pkt.mata_pelajaran} (${pkt.jurusan})` : '',
           zona_waktu: zonaWaktuIndonesia || 'WIB',
-          waktu_buka: getIndonesianDateTimeLocal(zonaWaktuIndonesia || 'WIB', 10),
-          waktu_tutup: getIndonesianDateTimeLocal(zonaWaktuIndonesia || 'WIB', 100),
+          waktu_buka: getIndonesianDateTimeLocal(zonaWaktuIndonesia || 'WIB', 0),
+          waktu_tutup: getIndonesianDateTimeLocal(zonaWaktuIndonesia || 'WIB', 90),
           durasi_menit: 90,
           minimal_menit_submit: 30,
           is_proctoring_active: true,
@@ -2926,8 +2977,8 @@
               </div>
             </div>
 
-            <div class="p-3 space-y-1.5 flex-1 overflow-y-auto">
-              <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
+            <div className="p-3 space-y-1.5 flex-1 overflow-y-auto">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
               <SidebarBtn active={activeTab === 'command-center'} onClick={() => setActiveTab('command-center')} icon={Activity} accent="emerald" label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Master</div>
@@ -3277,19 +3328,75 @@
                                   <div className="inline-flex items-center justify-end gap-2">
                                     <button
                                       onClick={() => {
-                                        setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'sedang_mengerjakan', jumlah_pelanggaran: 0 } : item));
-                                        triggerToast('Sesi Direset', `Sesi & strike ${u?.nama_lengkap} berhasil direset.`);
+                                        const updatedItem = {
+                                          ...pu,
+                                          status_pengerjaan: 'sedang_mengerjakan',
+                                          jumlah_pelanggaran: 0,
+                                          waktu_selesai: '',
+                                          log_pelanggaran: []
+                                        };
+                                        setPesertaUjian(pesertaUjian.map(item =>
+                                          item.id_peserta_ujian === pu.id_peserta_ujian ? updatedItem : item
+                                        ));
+                                        // Reset juga state ujian lokal peserta jika berada di browser yang sama
+                                        try {
+                                          const localExamKey = `skarida_exam_state_${pu.id_sesi}_${pu.id_user}`;
+                                          const rawLocal = safeGetStorage(localExamKey, '');
+                                          if (rawLocal) {
+                                            const parsedLocal = JSON.parse(rawLocal);
+                                            parsedLocal.status_pengerjaan = 'sedang_mengerjakan';
+                                            parsedLocal.strikes = 0;
+                                            parsedLocal.violationLogs = [];
+                                            safeSetStorage(localExamKey, JSON.stringify(parsedLocal));
+                                          }
+                                        } catch (_) {}
+                                        syncToSheets({
+                                          action: 'resetParticipantSession',
+                                          id_peserta_ujian: pu.id_peserta_ujian,
+                                          id_sesi: pu.id_sesi,
+                                          id_user: pu.id_user
+                                        });
+                                        triggerToast('Sesi & Strike Direset', `Sesi & strike ${u?.nama_lengkap} berhasil direset di server.`);
                                       }}
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500 hover:text-slate-950 text-sky-300 rounded-xl font-bold border border-sky-500/30 transition-all shadow-sm"
                                     >
                                       <RefreshCw className="w-3.5 h-3.5" /> Reset Sesi
                                     </button>
                                     <button
+                                      disabled={pu.status_pengerjaan === 'selesai' || pu.status_pengerjaan === 'dihentikan_sistem'}
                                       onClick={() => {
-                                        setPesertaUjian(pesertaUjian.map(item => item.id_peserta_ujian === pu.id_peserta_ujian ? { ...item, status_pengerjaan: 'dihentikan_sistem', waktu_selesai: '2026-11-16 08:30:00' } : item));
-                                        triggerToast('Force Submit', `Ujian ${u?.nama_lengkap} dihentikan paksa.`, 'warning');
+                                        const nowWib = indonesianClockStr;
+                                        const updatedItem = {
+                                          ...pu,
+                                          status_pengerjaan: 'dihentikan_sistem',
+                                          waktu_selesai: nowWib,
+                                          sisa_detik: 0
+                                        };
+                                        setPesertaUjian(pesertaUjian.map(item =>
+                                          item.id_peserta_ujian === pu.id_peserta_ujian ? updatedItem : item
+                                        ));
+                                        // Tandai juga state ujian lokal peserta agar layar ujian langsung berhenti seketika
+                                        try {
+                                          const localExamKey = `skarida_exam_state_${pu.id_sesi}_${pu.id_user}`;
+                                          const rawLocal = safeGetStorage(localExamKey, '');
+                                          if (rawLocal) {
+                                            const parsedLocal = JSON.parse(rawLocal);
+                                            parsedLocal.status_pengerjaan = 'dihentikan_sistem';
+                                            parsedLocal.waktuSelesaiStr = nowWib;
+                                            safeSetStorage(localExamKey, JSON.stringify(parsedLocal));
+                                          }
+                                          localStorage.removeItem(`skarida_active_exam_${pu.id_user}`);
+                                        } catch (_) {}
+                                        syncToSheets({
+                                          action: 'forceSubmitParticipant',
+                                          id_peserta_ujian: pu.id_peserta_ujian,
+                                          id_sesi: pu.id_sesi,
+                                          id_user: pu.id_user,
+                                          waktu_selesai: nowWib
+                                        });
+                                        triggerToast('Force Submit Dieksekusi', `Ujian ${u?.nama_lengkap} telah dihentikan paksa dari Command Center.`, 'warning');
                                       }}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-300 rounded-xl font-bold border border-rose-500/30 transition-all shadow-sm"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 hover:text-white disabled:opacity-40 text-rose-300 rounded-xl font-bold border border-rose-500/30 transition-all shadow-sm"
                                     >
                                       <Ban className="w-3.5 h-3.5" /> Force Submit
                                     </button>
