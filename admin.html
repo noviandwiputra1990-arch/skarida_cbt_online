@@ -1581,6 +1581,15 @@
       const [enrollFilterKelas, setEnrollFilterKelas] = useState('ALL');
       const [enrollFilterAgama, setEnrollFilterAgama] = useState('ALL');
 
+      // Filter Menu Manajemen Peserta Ujian (Sesi Ujian, Mapel, Kelas, Jurusan, Status & Cari)
+      const [mpuFilterSesi, setMpuFilterSesi] = useState('ALL');
+      const [mpuFilterMapel, setMpuFilterMapel] = useState('ALL');
+      const [mpuFilterJurusan, setMpuFilterJurusan] = useState('ALL');
+      const [mpuFilterKelas, setMpuFilterKelas] = useState('ALL');
+      const [mpuFilterStatus, setMpuFilterStatus] = useState('ALL');
+      const [mpuSearch, setMpuSearch] = useState('');
+      const [mpuActionModal, setMpuActionModal] = useState(null); // { type: 'RESET_UJIAN' | 'FORCE_SUBMIT', item }
+
       const [raporFilterMapel, setRaporFilterMapel] = useState('ALL');
       const [raporFilterTingkat, setRaporFilterTingkat] = useState('ALL');
       const [raporFilterKelas, setRaporFilterKelas] = useState('ALL');
@@ -2050,6 +2059,240 @@
         const currentIds = sesiModal.peserta_ids || [];
         return users.filter(u => currentIds.includes(u.id_user));
       }, [users, sesiModal]);
+
+      // Daftar Gabungan Peserta Ujian untuk Menu "Manajemen Peserta Ujian"
+      // Menggabungkan data dari tabel peserta_ujian dan daftar peserta yang terdaftar pada setiap sesi_ujian
+      const managedPesertaUjianList = useMemo(() => {
+        const mapEntries = new Map();
+
+        // 1. Masukkan seluruh baris yang sudah ada di tabel peserta_ujian
+        pesertaUjian.forEach(pu => {
+          const key = `${pu.id_sesi}_${pu.id_user}`;
+          mapEntries.set(key, pu);
+        });
+
+        // 2. Masukkan juga peserta yang terdaftar pada sesi_ujian.peserta_ids namun belum memiliki baris di peserta_ujian
+        sesiUjian.forEach(s => {
+          const durDetik = (Number(s.durasi_menit) || 60) * 60;
+          (s.peserta_ids || []).forEach(uid => {
+            const key = `${s.id_sesi}_${uid}`;
+            if (!mapEntries.has(key)) {
+              mapEntries.set(key, {
+                id_peserta_ujian: `PU-${s.id_sesi}-${uid}`,
+                id_sesi: s.id_sesi,
+                id_user: uid,
+                waktu_mulai: null,
+                waktu_selesai: null,
+                durasi_aktual: '-',
+                sisa_detik: durDetik,
+                status_pengerjaan: 'belum',
+                jumlah_pelanggaran: 0,
+                jml_terjawab: 0,
+                jml_benar_pg: 0,
+                jml_salah_pg: 0,
+                skor_pg: 0,
+                skor_uraian: 0,
+                nilai_total: 0,
+                jawaban_pg_siswa: {},
+                detail_uraian: {},
+                log_pelanggaran: [],
+                user_agent_device: '-'
+              });
+            }
+          });
+        });
+
+        const combined = Array.from(mapEntries.values()).map(pu => {
+          const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
+          const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
+          const paket = paketSoal.find(p => String(p.id_paket) === String(sesi?.id_paket));
+          const kelasSiswa = u?.kelas || '-';
+          const jurusanSiswa = u?.jurusan || (paket?.jurusan !== 'Semua Jurusan' ? paket?.jurusan : '-') || '-';
+          const mapelSesi = paket?.mata_pelajaran || sesi?.nama_sesi_spesifik || '-';
+          return {
+            ...pu,
+            user: u,
+            sesi,
+            paket,
+            nama_lengkap: u?.nama_lengkap || `Peserta #${pu.id_user}`,
+            username_nisn: u?.username_nisn || String(pu.id_user),
+            kelas: kelasSiswa,
+            jurusan: jurusanSiswa,
+            mata_pelajaran: mapelSesi,
+            nama_sesi: sesi?.nama_sesi_spesifik || `Sesi #${pu.id_sesi}`
+          };
+        });
+
+        return combined.filter(item => {
+          if (mpuFilterSesi !== 'ALL' && String(item.id_sesi) !== String(mpuFilterSesi)) return false;
+          if (mpuFilterMapel !== 'ALL' && item.mata_pelajaran !== mpuFilterMapel) return false;
+          if (mpuFilterJurusan !== 'ALL' && item.jurusan !== mpuFilterJurusan) return false;
+          if (mpuFilterKelas !== 'ALL' && item.kelas !== mpuFilterKelas) return false;
+          if (mpuFilterStatus !== 'ALL' && item.status_pengerjaan !== mpuFilterStatus) return false;
+          if (mpuSearch.trim()) {
+            const q = mpuSearch.toLowerCase();
+            const matchNama = String(item.nama_lengkap || '').toLowerCase().includes(q);
+            const matchNisn = String(item.username_nisn || '').toLowerCase().includes(q);
+            const matchKelas = String(item.kelas || '').toLowerCase().includes(q);
+            if (!matchNama && !matchNisn && !matchKelas) return false;
+          }
+          return true;
+        });
+      }, [pesertaUjian, sesiUjian, users, paketSoal, mpuFilterSesi, mpuFilterMapel, mpuFilterJurusan, mpuFilterKelas, mpuFilterStatus, mpuSearch]);
+
+      // Eksekusi Reset Ujian Peserta (Agar Peserta Bisa Mengulang Ujian dari Awal)
+      const handleResetUjianPeserta = (item) => {
+        if (!item) return;
+        const durDetik = (Number(item.sesi?.durasi_menit) || 60) * 60;
+        const resetRecord = {
+          id_peserta_ujian: item.id_peserta_ujian || `PU-${item.id_sesi}-${item.id_user}`,
+          id_sesi: item.id_sesi,
+          id_user: item.id_user,
+          waktu_mulai: null,
+          waktu_selesai: null,
+          durasi_aktual: '-',
+          sisa_detik: durDetik,
+          status_pengerjaan: 'belum',
+          jumlah_pelanggaran: 0,
+          jml_terjawab: 0,
+          jml_benar_pg: 0,
+          jml_salah_pg: 0,
+          skor_pg: 0,
+          skor_uraian: 0,
+          nilai_total: 0,
+          jawaban_pg_siswa: {},
+          jawaban_pg_siswa_json: '{}',
+          detail_uraian: {},
+          detail_skor_uraian_json: '{}',
+          jawaban_uraian_teks: '',
+          log_pelanggaran: [],
+          user_agent_device: '-'
+        };
+
+        setPesertaUjian(prev => {
+          const exists = prev.some(
+            p => String(p.id_peserta_ujian) === String(resetRecord.id_peserta_ujian) ||
+                 (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user))
+          );
+          if (exists) {
+            return prev.map(p =>
+              (String(p.id_peserta_ujian) === String(resetRecord.id_peserta_ujian) ||
+               (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user)))
+                ? resetRecord
+                : p
+            );
+          }
+          return [...prev, resetRecord];
+        });
+
+        // Kosongkan session_token pada user agar tidak terkunci Single-Device Lock
+        setUsers(prev => prev.map(u => String(u.id_user) === String(item.id_user) ? { ...u, session_token: '' } : u));
+
+        // Hapus state ujian lokal peserta pada browser jika berada di perangkat yang sama
+        try {
+          localStorage.removeItem(`skarida_exam_state_${item.id_sesi}_${item.id_user}`);
+          localStorage.removeItem(`skarida_active_exam_${item.id_user}`);
+        } catch (_) {}
+
+        syncToSheets({
+          action: 'resetExamRetake',
+          id_peserta_ujian: resetRecord.id_peserta_ujian,
+          id_sesi: item.id_sesi,
+          id_user: item.id_user,
+          sisa_detik: durDetik
+        });
+
+        setMpuActionModal(null);
+        triggerToast(
+          'Reset Ujian Berhasil',
+          `Ujian ${item.nama_lengkap} (${item.mata_pelajaran}) telah di-reset ke status "Belum Mulai". Peserta kini dapat mengerjakan ulang dari awal.`
+        );
+      };
+
+      // Eksekusi Force Submit Peserta (Membantu Peserta yang Terkendala Tidak Bisa Submit Ujian)
+      const handleForceSubmitPeserta = (item) => {
+        if (!item) return;
+        const nowWib = indonesianClockStr;
+        const durAktual = item.waktu_mulai ? hitungDurasiAktual(item.waktu_mulai, nowWib.replace(/ WIB| WITA| WIT/g, '')) : `${item.sesi?.minimal_menit_submit || 15} Menit`;
+        const puId = item.id_peserta_ujian || `PU-${item.id_sesi}-${item.id_user}`;
+
+        // Cek apakah ada jawaban tersimpan di localStorage browser yang sama
+        let localPgMap = item.jawaban_pg_siswa || {};
+        let localDetailUraian = item.detail_uraian || {};
+        let localSkorPG = Number(item.skor_pg) || 0;
+        let localBenarPG = item.jml_benar_pg;
+        let localSalahPG = item.jml_salah_pg;
+        let localTerjawab = item.jml_terjawab;
+
+        try {
+          const rawLocal = safeGetStorage(`skarida_exam_state_${item.id_sesi}_${item.id_user}`, '');
+          if (rawLocal) {
+            const parsedLocal = JSON.parse(rawLocal);
+            parsedLocal.status_pengerjaan = 'selesai';
+            parsedLocal.waktuSelesaiStr = nowWib;
+            safeSetStorage(`skarida_exam_state_${item.id_sesi}_${item.id_user}`, JSON.stringify(parsedLocal));
+          }
+          localStorage.removeItem(`skarida_active_exam_${item.id_user}`);
+        } catch (_) {}
+
+        const updatedRecord = {
+          ...item,
+          id_peserta_ujian: puId,
+          waktu_mulai: item.waktu_mulai || nowWib,
+          waktu_selesai: nowWib,
+          durasi_aktual: durAktual,
+          sisa_detik: 0,
+          status_pengerjaan: 'selesai',
+          skor_pg: localSkorPG,
+          skor_uraian: Number(item.skor_uraian) || 0,
+          nilai_total: localSkorPG + (Number(item.skor_uraian) || 0),
+          jml_terjawab: localTerjawab,
+          jml_benar_pg: localBenarPG,
+          jml_salah_pg: localSalahPG,
+          jawaban_pg_siswa: localPgMap,
+          detail_uraian: localDetailUraian
+        };
+        delete updatedRecord.user;
+        delete updatedRecord.sesi;
+        delete updatedRecord.paket;
+        delete updatedRecord.nama_lengkap;
+        delete updatedRecord.username_nisn;
+        delete updatedRecord.kelas;
+        delete updatedRecord.jurusan;
+        delete updatedRecord.mata_pelajaran;
+        delete updatedRecord.nama_sesi;
+
+        setPesertaUjian(prev => {
+          const exists = prev.some(
+            p => String(p.id_peserta_ujian) === String(puId) ||
+                 (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user))
+          );
+          if (exists) {
+            return prev.map(p =>
+              (String(p.id_peserta_ujian) === String(puId) ||
+               (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user)))
+                ? { ...p, ...updatedRecord }
+                : p
+            );
+          }
+          return [...prev, updatedRecord];
+        });
+
+        syncToSheets({
+          action: 'forceSubmitParticipant',
+          id_peserta_ujian: puId,
+          id_sesi: item.id_sesi,
+          id_user: item.id_user,
+          waktu_selesai: nowWib,
+          status_akhir: 'selesai'
+        });
+
+        setMpuActionModal(null);
+        triggerToast(
+          'Force Submit Berhasil',
+          `Ujian ${item.nama_lengkap} (${item.mata_pelajaran}) berhasil di-Force Submit dan disimpan dengan status Selesai.`
+        );
+      };
 
       // Helper untuk menyiapkan state awal modal sesi berdasarkan Paket Soal yang dipilih
       const buildInitialSesiModalState = (targetPaketId) => {
@@ -2991,6 +3234,7 @@
               <SidebarBtn active={activeTab === 'akun'} onClick={() => setActiveTab('akun')} icon={Users} accent="sky" label="Akun Peserta" desc="Filter Tingkat, Agama & Kartu" />
               <SidebarBtn active={activeTab === 'bank-soal'} onClick={() => setActiveTab('bank-soal')} icon={BookOpen} accent="amber" label="Bank Soal" desc="Paket Mapel & Gambar Opsi" />
               <SidebarBtn active={activeTab === 'sesi'} onClick={() => setActiveTab('sesi')} icon={CalendarClock} accent="violet" label="Konfigurasi Sesi" desc="Jadwal, Min Submit & Drag-Drop" />
+              <SidebarBtn active={activeTab === 'manajemen-peserta-ujian'} onClick={() => setActiveTab('manajemen-peserta-ujian')} icon={RefreshCw} accent="emerald" label="Manajemen Peserta Ujian" desc="Reset Ujian & Force Submit" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Evaluasi & Audit</div>
               <SidebarBtn active={activeTab === 'koreksi'} onClick={() => setActiveTab('koreksi')} icon={FileCheck2} accent="rose" label="Koreksi & e-Rapor" desc="Audit Waktu, Log & Nilai" />
@@ -3028,6 +3272,7 @@
                 {activeTab === 'akun' && <><Users className="w-5 h-5 text-indigo-400" /> Manajemen Akun Peserta</>}
                 {activeTab === 'bank-soal' && <><BookOpen className="w-5 h-5 text-indigo-400" /> Bank Soal Multimedia & Opsi Dinamis</>}
                 {activeTab === 'sesi' && <><CalendarClock className="w-5 h-5 text-indigo-400" /> Konfigurasi Sesi & Drag-Drop Enrollment</>}
+                {activeTab === 'manajemen-peserta-ujian' && <><RefreshCw className="w-5 h-5 text-emerald-400" /> Manajemen Peserta Ujian (Reset Ujian & Force Submit)</>}
                 {activeTab === 'koreksi' && <><FileCheck2 className="w-5 h-5 text-indigo-400" /> Koreksi Uraian, Audit Waktu & e-Rapor</>}
                 {activeTab === 'clear-database' && <><Database className="w-5 h-5 text-rose-400" /> Pemeliharaan & Kosongkan Database Per Tabel</>}
               </h2>
@@ -3412,968 +3657,344 @@
                 </div>
               )}
 
-              {/* 2. MASTER UJIAN */}
-              {activeTab === 'master-ujian' && (
+              {/* 8B. MANAJEMEN PESERTA UJIAN (FILTER SESI, MAPEL, KELAS, JURUSAN + RESET UJIAN & FORCE SUBMIT) */}
+              {activeTab === 'manajemen-peserta-ujian' && (
                 <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <h3 className="font-bold text-white text-sm">Daftar Master Jenis Ujian</h3>
-                    <button onClick={() => setUjianModal({ id_ujian: null, nama_ujian: '', kode: '', status: 'Aktif' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
-                      <Plus className="w-4 h-4" /> Tambah Nama Ujian
-                    </button>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5">Kode</th>
-                          <th className="p-3.5">Nama Ujian</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {masterUjian.map(u => (
-                          <tr key={u.id_ujian} className="hover:bg-slate-800/30">
-                            <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{u.kode}</td>
-                            <td className="p-3.5 font-bold text-white">{u.nama_ujian}</td>
-                            <td className="p-3.5 pr-5 text-right">
-                              <div className="inline-flex items-center justify-end gap-2">
-                                <button onClick={() => setUjianModal({ ...u })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                  <Edit3 className="w-3.5 h-3.5" /> Edit
-                                </button>
-                                <button onClick={() => {
-                                  setMasterUjian(masterUjian.filter(x => x.id_ujian !== u.id_ujian));
-                                  syncToSheets({ action: 'delete', sheet: 'master_ujian', pkField: 'id_ujian', pkValue: u.id_ujian });
-                                  triggerToast('Dihapus', 'Master Ujian dihapus.', 'warning');
-                                }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. MASTER JURUSAN */}
-              {activeTab === 'master-jurusan' && (
-                <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <h3 className="font-bold text-white text-sm">Daftar Kompetensi Keahlian (Jurusan)</h3>
-                    <button onClick={() => setJurusanModal({ id_jurusan: null, kode_jurusan: '', nama_jurusan: '' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
-                      <Plus className="w-4 h-4" /> Tambah Jurusan
-                    </button>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5">Kode</th>
-                          <th className="p-3.5">Nama Jurusan</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {masterJurusan.map(j => (
-                          <tr key={j.id_jurusan} className="hover:bg-slate-800/30">
-                            <td className="p-3.5 pl-5 font-mono font-bold text-emerald-400">{j.kode_jurusan}</td>
-                            <td className="p-3.5 font-bold text-white">{j.nama_jurusan}</td>
-                            <td className="p-3.5 pr-5 text-right">
-                              <div className="inline-flex items-center justify-end gap-2">
-                                <button onClick={() => setJurusanModal({ ...j })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                  <Edit3 className="w-3.5 h-3.5" /> Edit
-                                </button>
-                                <button onClick={() => {
-                                  setMasterJurusan(masterJurusan.filter(x => x.id_jurusan !== j.id_jurusan));
-                                  syncToSheets({ action: 'delete', sheet: 'master_jurusan', pkField: 'id_jurusan', pkValue: j.id_jurusan });
-                                  triggerToast('Dihapus', 'Jurusan dihapus.', 'warning');
-                                }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 4. MASTER KELAS (DENGAN TINGKAT X, XI, XII) */}
-              {activeTab === 'master-kelas' && (
-                <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                      <h3 className="font-bold text-white text-sm">Daftar Master Kelas & Jenjang Tingkat (X, XI, XII)</h3>
-                      <p className="text-xs text-slate-400">Kelola rombongan belajar beserta jenjang Tingkat Kelas X, XI, dan XII.</p>
-                    </div>
-                    <button onClick={() => setKelasModal({ id_kelas: null, kode_jurusan: masterJurusan[0]?.kode_jurusan || 'DPIB', tingkat: 'X', nama_kelas: '' })} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
-                      <Plus className="w-4 h-4" /> Tambah Kelas
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Tingkat (Jenjang Kelas)</label>
-                      <select value={kelasFilterTingkat} onChange={e => setKelasFilterTingkat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <option value="ALL">Semua Tingkat (Kelas X, XI, XII)</option>
-                        {TINGKAT_LIST.map(t => <option key={t} value={t}>Tingkat Kelas {t}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Jurusan</label>
-                      <select value={kelasFilterJurusan} onChange={e => setKelasFilterJurusan(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <option value="ALL">Semua Jurusan</option>
-                        {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan} - {j.nama_jurusan}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/70 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5">Tingkat (Jenjang)</th>
-                          <th className="p-3.5">Jurusan</th>
-                          <th className="p-3.5">Nama Kelas (Rombel)</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {filteredMasterKelas.map(k => {
-                          const tingkatVal = k.tingkat || inferTingkatFromKelas(k.nama_kelas, 'X');
-                          return (
-                            <tr key={k.id_kelas} className="hover:bg-slate-800/30">
-                              <td className="p-3.5 pl-5">
-                                <span className="px-2.5 py-1 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30 font-extrabold text-xs">
-                                  Kelas {tingkatVal}
-                                </span>
-                              </td>
-                              <td className="p-3.5 font-mono font-bold text-indigo-400">{k.kode_jurusan}</td>
-                              <td className="p-3.5 font-bold text-white">{k.nama_kelas}</td>
-                              <td className="p-3.5 pr-5 text-right">
-                                <div className="inline-flex items-center justify-end gap-2">
-                                  <button onClick={() => setKelasModal({ ...k, tingkat: tingkatVal })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                    <Edit3 className="w-3.5 h-3.5" /> Edit
-                                  </button>
-                                  <button onClick={() => {
-                                    setMasterKelas(masterKelas.filter(x => x.id_kelas !== k.id_kelas));
-                                    syncToSheets({ action: 'delete', sheet: 'master_kelas', pkField: 'id_kelas', pkValue: k.id_kelas });
-                                    triggerToast('Dihapus', 'Kelas dihapus.', 'warning');
-                                  }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 5. MANAJEMEN USER ADMIN & GURU (CRUD) */}
-              {activeTab === 'manajemen-staff' && (
-                <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                      <h3 className="font-bold text-white text-sm">Manajemen User Admin & Guru (CRUD)</h3>
-                      <p className="text-xs text-slate-400">Tambah, Edit, dan Hapus akun Superadmin maupun Guru Mata Pelajaran.</p>
+                  {/* Banner Penjelasan Fungsi Menu */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 text-emerald-400" /> Manajemen Peserta Ujian — Kontrol Reset Ujian & Force Submit
+                      </h3>
+                      <p className="text-xs text-slate-400 max-w-3xl leading-relaxed">
+                        Pilih peserta berdasarkan <strong className="text-slate-200">Sesi Ujian, Mata Pelajaran, Kelas, dan Jurusan</strong>. Gunakan tombol <strong className="text-sky-300">Reset Ujian</strong> agar peserta yang mengalami kendala internet hingga kehabisan waktu dapat mengulang kembali ujian dari awal, atau tombol <strong className="text-amber-300">Force Submit</strong> apabila peserta mengalami kendala tidak bisa mengumpulkan ujian.
+                      </p>
                     </div>
                     <button
-                      onClick={() => setStaffModal({ id_staff: null, username_nip: '', nama_lengkap: '', role: 'guru', mapel_jabatan: '', password_plain: 'GURU-2026', new_password: '', status: 'Aktif' })}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all"
+                      type="button"
+                      onClick={() => fetchAllFromSheets(false)}
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5 shrink-0 transition"
                     >
-                      <Plus className="w-4 h-4" /> Tambah User Admin / Guru
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} /> Refresh Status Peserta
                     </button>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5">Username / NIP</th>
-                          <th className="p-3.5">Nama Lengkap</th>
-                          <th className="p-3.5">Role</th>
-                          <th className="p-3.5">Mapel / Jabatan</th>
-                          <th className="p-3.5">Password</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {filteredStaffUsers.map(st => (
-                          <tr key={st.id_staff} className="hover:bg-slate-800/30">
-                            <td className="p-3.5 pl-5 font-mono font-bold text-indigo-400">{st.username_nip}</td>
-                            <td className="p-3.5 font-bold text-white">{st.nama_lengkap}</td>
-                            <td className="p-3.5 uppercase font-extrabold text-sky-400">{st.role}</td>
-                            <td className="p-3.5 text-slate-300">{st.mapel_jabatan}</td>
-                            <td className="p-3.5 font-mono text-amber-400 font-bold">{st.password_plain}</td>
-                            <td className="p-3.5 pr-5 text-right">
-                              <div className="inline-flex items-center justify-end gap-2">
-                                <button onClick={() => setStaffModal({ ...st, new_password: '' })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                  <Edit3 className="w-3.5 h-3.5" /> Edit
-                                </button>
-                                <button onClick={() => {
-                                  setStaffUsers(staffUsers.filter(x => x.id_staff !== st.id_staff));
-                                  syncToSheets({ action: 'delete', sheet: 'users_staff', pkField: 'id_staff', pkValue: st.id_staff });
-                                  triggerToast('User Dihapus', 'Akun staff dihapus.', 'warning');
-                                }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 6. AKUN PESERTA (DENGAN TINGKAT X, XI, XII & PILIH NAMA KELAS) */}
-              {activeTab === 'akun' && (
-                <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap gap-3 justify-between items-center">
-                    <div>
-                      <h3 className="font-bold text-white text-sm">Manajemen Akun Peserta & Impor Excel Dapodik</h3>
-                      <p className="text-xs text-slate-400">Unduh template Excel, impor data peserta secara massal, filter Tingkat (X, XI, XII), Jurusan, Kelas, dan Agama serta Cetak Kartu Login.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleDownloadTemplatePeserta}
-                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                        title="Unduh Template Excel (.xlsx) untuk Impor Data Peserta"
-                      >
-                        <Download className="w-3.5 h-3.5 text-sky-400" /> Unduh Template Peserta (.xlsx)
-                      </button>
-                      <label
-                        className="cursor-pointer px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                        title="Impor Data Peserta dari File Excel (.xlsx / .xls / .csv)"
-                      >
-                        <Upload className="w-3.5 h-3.5" /> Impor Data Peserta (.xlsx)
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls,.csv"
-                          onChange={handleImportPesertaExcel}
-                          className="hidden"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setEditUserModal({ id_user: null, username_nisn: '', nama_lengkap: '', agama: 'Islam', tingkat: 'X', jurusan: 'DPIB', kelas: 'X DPIB 1', password_plain: `SKR-${Math.floor(1000 + Math.random() * 9000)}`, new_password: '' })}
-                        className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Tambah Peserta
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowKartuModal(true)}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-600/20"
-                      >
-                        <Printer className="w-3.5 h-3.5" /> Cetak Kartu Login ({filteredUsers.length})
-                      </button>
-                    </div>
-                  </div>
-
+                  {/* Bar Filter: Sesi Ujian, Mapel, Jurusan, Kelas, Status & Pencarian */}
                   <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Tingkat</label>
-                      <select value={akunFilterTingkat} onChange={e => { setAkunFilterTingkat(e.target.value); setAkunFilterKelas('ALL'); }} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <option value="ALL">Semua Tingkat (X, XI, XII)</option>
-                        {TINGKAT_LIST.map(t => <option key={t} value={t}>Kelas {t}</option>)}
+                      <label className="block text-[10px] font-bold uppercase text-indigo-400 mb-1">1. Filter Sesi Ujian</label>
+                      <select
+                        value={mpuFilterSesi}
+                        onChange={e => setMpuFilterSesi(e.target.value)}
+                        className="w-full bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold"
+                      >
+                        <option value="ALL">Semua Sesi Ujian</option>
+                        {sesiUjian.map(s => (
+                          <option key={s.id_sesi} value={s.id_sesi}>{s.nama_sesi_spesifik}</option>
+                        ))}
                       </select>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Jurusan</label>
-                      <select value={akunFilterJurusan} onChange={e => { setAkunFilterJurusan(e.target.value); setAkunFilterKelas('ALL'); }} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <label className="block text-[10px] font-bold uppercase text-amber-400 mb-1">2. Filter Mata Pelajaran</label>
+                      <select
+                        value={mpuFilterMapel}
+                        onChange={e => setMpuFilterMapel(e.target.value)}
+                        className="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold"
+                      >
+                        <option value="ALL">Semua Mata Pelajaran</option>
+                        {[...new Set(paketSoal.map(p => p.mata_pelajaran))].map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-sky-400 mb-1">3. Filter Jurusan</label>
+                      <select
+                        value={mpuFilterJurusan}
+                        onChange={e => {
+                          setMpuFilterJurusan(e.target.value);
+                          setMpuFilterKelas('ALL');
+                        }}
+                        className="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold"
+                      >
                         <option value="ALL">Semua Jurusan</option>
-                        {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
+                        {masterJurusan.map(j => (
+                          <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan} — {j.nama_jurusan}</option>
+                        ))}
                       </select>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Nama Kelas</label>
-                      <select value={akunFilterKelas} onChange={e => setAkunFilterKelas(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <label className="block text-[10px] font-bold uppercase text-violet-400 mb-1">4. Filter Kelas</label>
+                      <select
+                        value={mpuFilterKelas}
+                        onChange={e => setMpuFilterKelas(e.target.value)}
+                        className="w-full bg-slate-950 border border-violet-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold"
+                      >
                         <option value="ALL">Semua Kelas</option>
                         {masterKelas
-                          .filter(k => (akunFilterTingkat === 'ALL' || (k.tingkat || inferTingkatFromKelas(k.nama_kelas)) === akunFilterTingkat) && (akunFilterJurusan === 'ALL' || k.kode_jurusan === akunFilterJurusan))
-                          .map(k => <option key={k.id_kelas} value={k.nama_kelas}>{k.nama_kelas}</option>)}
+                          .filter(k => mpuFilterJurusan === 'ALL' || k.kode_jurusan === mpuFilterJurusan)
+                          .map(k => (
+                            <option key={k.id_kelas} value={k.nama_kelas}>{k.nama_kelas}</option>
+                          ))}
                       </select>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Agama</label>
-                      <select value={akunFilterAgama} onChange={e => setAkunFilterAgama(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <option value="ALL">Semua Agama</option>
-                        {AGAMA_LIST.map(a => <option key={a} value={a}>{a}</option>)}
+                      <label className="block text-[10px] font-bold uppercase text-emerald-400 mb-1">Status Pengerjaan</label>
+                      <select
+                        value={mpuFilterStatus}
+                        onChange={e => setMpuFilterStatus(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      >
+                        <option value="ALL">Semua Status</option>
+                        <option value="sedang_mengerjakan">Sedang Mengerjakan</option>
+                        <option value="selesai">Sudah Selesai</option>
+                        <option value="dihentikan_sistem">Dihentikan Sistem (Force Submit)</option>
+                        <option value="belum">Belum Mulai</option>
                       </select>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-sky-400 mb-1">Urutkan Data (Sort)</label>
-                      <select value={akunSortBy} onChange={e => setAkunSortBy(e.target.value)} className="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold">
-                        <option value="nama_asc">Nama Peserta (A - Z)</option>
-                        <option value="nama_desc">Nama Peserta (Z - A)</option>
-                        <option value="nisn_asc">NISN (Terkecil - Terbesar)</option>
-                        <option value="nisn_desc">NISN (Terbesar - Terkecil)</option>
-                        <option value="kelas_asc">Nama Kelas (A - Z)</option>
-                        <option value="tingkat_asc">Tingkat Kelas (X, XI, XII)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Cari Peserta</label>
-                      <input type="text" value={akunSearch} onChange={e => setAkunSearch(e.target.value)} placeholder="Cari Nama / NISN..." className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" />
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Cari Nama / NISN</label>
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={mpuSearch}
+                          onChange={e => setMpuSearch(e.target.value)}
+                          placeholder="Ketik Nama / NISN..."
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white"
+                        />
+                      </div>
                     </div>
                   </div>
 
+                  {/* Ringkasan Cepat Jumlah Status Peserta Terfilter */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Peserta Terfilter</span>
+                        <span className="text-lg font-black text-white font-mono">{managedPesertaUjianList.length} Siswa</span>
+                      </div>
+                      <Users className="w-6 h-6 text-indigo-400 opacity-80" />
+                    </div>
+                    <div className="bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-amber-300 block">Sedang Mengerjakan</span>
+                        <span className="text-lg font-black text-amber-400 font-mono">
+                          {managedPesertaUjianList.filter(i => i.status_pengerjaan === 'sedang_mengerjakan').length} Siswa
+                        </span>
+                      </div>
+                      <Clock className="w-6 h-6 text-amber-400 opacity-80" />
+                    </div>
+                    <div className="bg-slate-900 border border-emerald-500/30 p-3.5 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-300 block">Sudah Selesai</span>
+                        <span className="text-lg font-black text-emerald-400 font-mono">
+                          {managedPesertaUjianList.filter(i => i.status_pengerjaan === 'selesai').length} Siswa
+                        </span>
+                      </div>
+                      <CheckCircle2 className="w-6 h-6 text-emerald-400 opacity-80" />
+                    </div>
+                    <div className="bg-slate-900 border border-rose-500/30 p-3.5 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-rose-300 block">Dihentikan / Kehabisan Waktu</span>
+                        <span className="text-lg font-black text-rose-400 font-mono">
+                          {managedPesertaUjianList.filter(i => i.status_pengerjaan === 'dihentikan_sistem').length} Siswa
+                        </span>
+                      </div>
+                      <Ban className="w-6 h-6 text-rose-400 opacity-80" />
+                    </div>
+                  </div>
+
+                  {/* Tabel Data Peserta Ujian beserta Tombol Reset Ujian & Force Submit */}
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <div className="px-5 py-2.5 bg-slate-950/50 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <span className="text-slate-400">
-                        Menampilkan <strong className="text-white">{filteredUsers.length}</strong> dari <strong className="text-slate-300">{users.length}</strong> total peserta terdaftar
-                      </span>
-                      <span className="text-sky-400 font-semibold">
-                        Nomor urut otomatis menyesuaikan hasil filter & sortir
-                      </span>
-                    </div>
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5 w-14 text-center">No</th>
-                          <th className="p-3.5">NISN</th>
-                          <th className="p-3.5">Nama Lengkap</th>
-                          <th className="p-3.5">Tingkat</th>
-                          <th className="p-3.5">Kelas & Jurusan</th>
-                          <th className="p-3.5">Agama</th>
-                          <th className="p-3.5">Password</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {filteredUsers.map((u, idx) => {
-                          const tingkatVal = u.tingkat || inferTingkatFromKelas(u.kelas, 'X');
-                          return (
-                            <tr key={u.id_user} className="hover:bg-slate-800/30">
-                              <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
-                              <td className="p-3.5 font-mono font-bold text-indigo-400">{u.username_nisn}</td>
-                              <td className="p-3.5 font-bold text-white">{u.nama_lengkap}</td>
-                              <td className="p-3.5">
-                                <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 font-extrabold text-[11px]">
-                                  Kelas {tingkatVal}
-                                </span>
-                              </td>
-                              <td className="p-3.5 font-semibold text-slate-200">{u.kelas} <span className="text-sky-400">({u.jurusan})</span></td>
-                              <td className="p-3.5 text-indigo-300 font-semibold">{u.agama}</td>
-                              <td className="p-3.5 font-mono font-bold text-amber-400">{u.password_plain}</td>
-                              <td className="p-3.5 pr-5 text-right">
-                                <div className="inline-flex items-center justify-end gap-2">
-                                  <button onClick={() => setEditUserModal({ ...u, tingkat: tingkatVal, new_password: '' })} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                    <Edit3 className="w-3.5 h-3.5" /> Edit
-                                  </button>
-                                  <button onClick={() => {
-                                    setUsers(users.filter(x => x.id_user !== u.id_user));
-                                    syncToSheets({ action: 'delete', sheet: 'users_peserta', pkField: 'id_user', pkValue: u.id_user });
-                                    triggerToast('Peserta Dihapus', 'Akun peserta dihapus.', 'warning');
-                                  }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {filteredUsers.length === 0 && (
-                          <tr>
-                            <td colSpan={8} className="p-8 text-center text-slate-500">
-                              Tidak ada data akun peserta yang cocok dengan pencarian/filter.
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800 text-[11px]">
+                            <th className="p-3.5 pl-5 w-12 text-center">No</th>
+                            <th className="p-3.5">Nama Peserta & NISN</th>
+                            <th className="p-3.5">Kelas & Jurusan</th>
+                            <th className="p-3.5">Sesi Ujian & Mata Pelajaran</th>
+                            <th className="p-3.5">Waktu Mulai / Selesai</th>
+                            <th className="p-3.5 text-center">Status Pengerjaan</th>
+                            <th className="p-3.5 text-center">Progress & Skor</th>
+                            <th className="p-3.5 text-right pr-5">Kontrol Ujian Peserta</th>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {managedPesertaUjianList.map((item, idx) => {
+                            const isFinished = item.status_pengerjaan === 'selesai' || item.status_pengerjaan === 'dihentikan_sistem';
+                            const isWorking = item.status_pengerjaan === 'sedang_mengerjakan';
+                            const isBelum = item.status_pengerjaan === 'belum';
+                            return (
+                              <tr key={`${item.id_sesi}_${item.id_user}`} className="hover:bg-slate-800/30">
+                                <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
+                                <td className="p-3.5">
+                                  <div className="font-bold text-white">{item.nama_lengkap}</div>
+                                  <div className="text-[10px] font-mono text-indigo-400">NISN: {item.username_nisn}</div>
+                                </td>
+                                <td className="p-3.5">
+                                  <span className="px-2 py-0.5 rounded bg-slate-800 text-white font-semibold">{item.kelas}</span>
+                                  <span className="ml-1.5 px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 font-mono font-bold text-[10px]">
+                                    {item.jurusan}
+                                  </span>
+                                </td>
+                                <td className="p-3.5">
+                                  <div className="font-bold text-amber-300">{item.mata_pelajaran}</div>
+                                  <div className="text-[10px] text-slate-400">{item.nama_sesi}</div>
+                                </td>
+                                <td className="p-3.5 font-mono text-[11px]">
+                                  <div className="text-emerald-400">Mulai : {item.waktu_mulai || '-'}</div>
+                                  <div className="text-sky-400">Selesai: {item.waktu_selesai || '-'}</div>
+                                </td>
+                                <td className="p-3.5 text-center">
+                                  {item.status_pengerjaan === 'selesai' && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-extrabold text-[11px]">
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Selesai
+                                    </span>
+                                  )}
+                                  {item.status_pengerjaan === 'sedang_mengerjakan' && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-[11px]">
+                                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" /> Sedang Mengerjakan
+                                    </span>
+                                  )}
+                                  {item.status_pengerjaan === 'dihentikan_sistem' && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-extrabold text-[11px]">
+                                      <Ban className="w-3.5 h-3.5" /> Dihentikan Sistem
+                                    </span>
+                                  )}
+                                  {item.status_pengerjaan === 'belum' && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 font-bold text-[11px]">
+                                      Belum Mulai
+                                    </span>
+                                  )}
+                                  {Number(item.jumlah_pelanggaran) > 0 && (
+                                    <div className="text-[10px] text-rose-400 font-bold mt-1">
+                                      Pelanggaran: {item.jumlah_pelanggaran}x
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="p-3.5 text-center font-mono">
+                                  <div className="text-white font-bold">
+                                    Terjawab: {item.jml_terjawab ?? 0} Soal
+                                  </div>
+                                  <div className="text-[10px] text-sky-400">
+                                    Skor PG: {item.skor_pg || 0} | Uraian: {item.skor_uraian || 0}
+                                  </div>
+                                </td>
+                                <td className="p-3.5 pr-5 text-right">
+                                  <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                                    {/* Tombol Reset Ujian: Untuk mereset ujian yang sudah selesai / kehabisan waktu agar peserta bisa mengulang dari awal */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setMpuActionModal({ type: 'RESET_UJIAN', item })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/40 font-extrabold text-xs transition shadow-sm"
+                                      title="Reset Ujian agar peserta dapat mengulang kembali ujian dari awal (Durasi & Soal di-reset)"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" /> Reset Ujian
+                                    </button>
 
-              {/* 7. BANK SOAL (PAKET MAPEL DENGAN TINGKAT, SEMUA JURUSAN / CUSTOM KELAS & LAMPIRAN GAMBAR OPSI) */}
-              {activeTab === 'bank-soal' && (
-                <div className="space-y-5">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-4">
-                    <div className="flex flex-wrap justify-between items-center gap-3">
-                      <div>
-                        <h3 className="font-bold text-white text-sm">Manajemen Paket Bank Soal Mapel & Impor Butir Soal</h3>
-                        <p className="text-xs text-slate-400">Mendukung sasaran Semua Jurusan, Jurusan Tertentu, atau Custom Beberapa Kelas pada Tingkat X, XI, XII serta Impor Excel Butir Soal.</p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleDownloadTemplateSoal}
-                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                          title="Unduh Template Excel (.xlsx) untuk Impor Butir Soal"
-                        >
-                          <Download className="w-3.5 h-3.5 text-amber-400" /> Unduh Template Soal (.xlsx)
-                        </button>
-                        <button
-                          onClick={() => setPaketModal({
-                            id_paket: null,
-                            mata_pelajaran: '',
-                            tingkat: 'X',
-                            mode_sasaran: 'semua',
-                            jurusan: 'Semua Jurusan',
-                            custom_items: [],
-                            guru: staffUsers[1]?.nama_lengkap || 'Guru Mapel'
-                          })}
-                          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all"
-                        >
-                          <Plus className="w-4 h-4" /> Tambah Paket Bank Soal Mapel
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Mata Pelajaran</label>
-                        <select value={soalFilterMapel} onChange={e => setSoalFilterMapel(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                          <option value="ALL">Semua Mata Pelajaran</option>
-                          {[...new Set(paketSoal.map(p => p.mata_pelajaran))].map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Tingkat (Jenjang Kelas)</label>
-                        <select value={soalFilterTingkat} onChange={e => setSoalFilterTingkat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                          <option value="ALL">Semua Tingkat (Kelas X, XI, XII)</option>
-                          {TINGKAT_LIST.map(t => <option key={t} value={t}>Tingkat Kelas {t}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Jurusan / Kelas</label>
-                        <select value={soalFilterJurusan} onChange={e => setSoalFilterJurusan(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                          <option value="ALL">Semua Jurusan & Kelas</option>
-                          <option value="Semua Jurusan">Semua Jurusan (Mapel Umum)</option>
-                          {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Daftar Kartu Paket Mapel */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPaketSoal.map(pkt => {
-                      const isSelected = selectedPaketId !== null && String(selectedPaketId) === String(pkt.id_paket);
-                      const tingkatVal = pkt.tingkat || pkt.kelas || 'X';
-                      const listSoalPaket = masterSoal.filter(s => String(s.id_paket) === String(pkt.id_paket));
-                      const countPG = listSoalPaket.filter(s => s.tipe_soal === 'PG').length;
-                      const countUraian = listSoalPaket.filter(s => s.tipe_soal === 'Uraian').length;
-                      return (
-                        <div
-                          key={pkt.id_paket}
-                          onClick={() => setSelectedPaketId(isSelected ? null : pkt.id_paket)}
-                          className={`p-4 rounded-2xl border cursor-pointer transition ${isSelected ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex flex-wrap gap-1.5">
-                              <span className="px-2 py-0.5 bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[10px] font-extrabold rounded uppercase">
-                                Tingkat {tingkatVal}
-                              </span>
-                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold rounded">
-                                {pkt.jurusan}
-                              </span>
-                            </div>
-                            <div className="inline-flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openReviewPaketPovModal(pkt);
-                                }}
-                                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-extrabold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 rounded-lg transition"
-                                title="Review Seluruh Soal (Simulasi POV Peserta)"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Review Soal
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const isAll = pkt.jurusan === 'Semua Jurusan';
-                                  const isSingleJur = masterJurusan.some(j => j.kode_jurusan === pkt.jurusan);
-                                  const rawParts = String(pkt.jurusan || '').split(',').map(s => s.trim()).filter(Boolean);
-                                  const isCustomJur = !isAll && !isSingleJur && rawParts.every(rp => masterJurusan.some(j => j.kode_jurusan === rp));
-                                  setPaketModal({
-                                    ...pkt,
-                                    tingkat: tingkatVal,
-                                    mode_sasaran: pkt.mode_sasaran || (isAll ? 'semua' : isSingleJur ? 'jurusan' : isCustomJur ? 'custom_jurusan' : 'custom_kelas'),
-                                    custom_items: Array.isArray(pkt.custom_items) && pkt.custom_items.length > 0 ? pkt.custom_items : rawParts
-                                  });
-                                }}
-                                className="p-1.5 text-indigo-300 hover:bg-indigo-500/20 rounded-lg"
-                                title="Edit Paket Bank Soal"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (String(selectedPaketId) === String(pkt.id_paket)) {
-                                    setSelectedPaketId(null);
-                                  }
-                                  setPaketSoal(paketSoal.filter(x => x.id_paket !== pkt.id_paket));
-                                  syncToSheets({ action: 'delete', sheet: 'paket_soal', pkField: 'id_paket', pkValue: pkt.id_paket });
-                                  triggerToast('Paket Dihapus', 'Paket soal dihapus.', 'warning');
-                                }}
-                                className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg"
-                                title="Hapus Paket Bank Soal"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                          <h4 className="font-bold text-white text-sm mt-2.5">{pkt.mata_pelajaran}</h4>
-                          <p className="text-[11px] text-slate-400 mt-0.5 truncate">{pkt.guru}</p>
-                          <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/80 text-[11px]">
-                            <span className="font-extrabold text-amber-300">
-                              {countPG} butir soal PG dan {countUraian} Uraian
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 font-mono font-bold text-[10px]">
-                                PG: {countPG}
-                              </span>
-                              <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono font-bold text-[10px]">
-                                Uraian: {countUraian}
-                              </span>
-                              <span className={`text-[10px] font-extrabold ml-1 ${isSelected ? 'text-emerald-400' : 'text-indigo-400'}`}>
-                                {isSelected ? '✓ Terpilih' : 'Klik Pilih →'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Tabel Daftar Butir Soal (Kosong jika tidak ada Paket Bank Soal yang dipilih) */}
-                  {(() => {
-                    const activePktObj = selectedPaketId !== null
-                      ? filteredPaketSoal.find(p => String(p.id_paket) === String(selectedPaketId))
-                      : null;
-                    const activeSoalList = activePktObj
-                      ? masterSoal.filter(s => String(s.id_paket) === String(activePktObj.id_paket))
-                      : [];
-                    const activeCountPG = activeSoalList.filter(s => s.tipe_soal === 'PG').length;
-                    const activeCountUraian = activeSoalList.filter(s => s.tipe_soal === 'Uraian').length;
-
-                    return (
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                        <div className="p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                                <Layers className="w-4 h-4 text-amber-400" />
-                                Daftar Butir Soal:{' '}
-                                {activePktObj ? (
-                                  <span className="text-indigo-300">{activePktObj.mata_pelajaran}</span>
-                                ) : (
-                                  <span className="text-slate-500 italic">(Belum Ada Paket Soal Dipilih)</span>
-                                )}
-                              </h3>
-                              {activePktObj && (
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-[11px]">
-                                  {activeCountPG} butir soal PG dan {activeCountUraian} Uraian
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                              {activePktObj ? (
-                                <>Sasaran Kelas Paket: <strong className="text-sky-300">Tingkat {activePktObj.tingkat || activePktObj.kelas || 'X'} • {activePktObj.jurusan}</strong></>
-                              ) : (
-                                'Klik salah satu kartu Paket Bank Soal Mapel di atas untuk menampilkan dan mengelola daftar butir soal.'
-                              )}
-                            </p>
-                          </div>
-
-                          {activePktObj && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedPaketId(null)}
-                                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold rounded-xl transition"
-                              >
-                                Tutup Pilihan Paket
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleDownloadTemplateSoal}
-                                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                                title="Unduh Template Excel (.xlsx) Butir Soal"
-                              >
-                                <Download className="w-3.5 h-3.5 text-sky-400" /> Template Soal (.xlsx)
-                              </button>
-                              <label
-                                className="cursor-pointer px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                                title="Impor Butir Soal dari File Excel (.xlsx / .xls / .csv) ke Paket Soal Ini"
-                              >
-                                <Upload className="w-3.5 h-3.5" /> Impor Butir Soal (.xlsx)
-                                <input
-                                  type="file"
-                                  accept=".xlsx,.xls,.csv"
-                                  onChange={e => handleImportSoalExcel(e, activePktObj.id_paket)}
-                                  className="hidden"
-                                />
-                              </label>
-                              <button
-                                onClick={() => openReviewPaketPovModal(activePktObj)}
-                                className="px-3.5 py-2 bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition"
-                              >
-                                <Eye className="w-4 h-4" /> Review Soal (POV Peserta)
-                              </button>
-                              <button
-                                onClick={() => setSoalModal({
-                                  id_soal: null,
-                                  id_paket: activePktObj.id_paket,
-                                  tipe_soal: 'PG',
-                                  kategori_kognitif: 'MoTS',
-                                  bobot_skor: 2,
-                                  teks_pertanyaan: '',
-                                  file_gambar_soal: null,
-                                  preview_gambar_soal: '',
-                                  jumlah_opsi: 5,
-                                  opsi: ['', '', '', '', ''],
-                                  gambar_opsi: [null, null, null, null, null],
-                                  preview_gambar_opsi: ['', '', '', '', ''],
-                                  kunci_jawaban: 'A'
-                                })}
-                                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
-                              >
-                                <Plus className="w-4 h-4" /> Tambah Butir Soal
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="bg-slate-950/60 text-slate-400 uppercase border-b border-slate-800">
-                              <th className="p-3.5 pl-5 w-14">No</th>
-                              <th className="p-3.5">Tipe & Opsi</th>
-                              <th className="p-3.5">Kognitif & Bobot</th>
-                              <th className="p-3.5">Pertanyaan & Lampiran Gambar</th>
-                              <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
-                            {!activePktObj ? (
-                              <tr>
-                                <td colSpan={5} className="p-10 text-center text-slate-500">
-                                  <div className="max-w-md mx-auto space-y-1.5">
-                                    <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-1" />
-                                    <div className="font-bold text-slate-300 text-xs">Daftar Butir Soal Kosong (Belum Ada Paket Soal yang Dipilih)</div>
-                                    <p className="text-[11px] text-slate-500">
-                                      Silakan klik salah satu kartu <strong>Paket Bank Soal Mapel</strong> di atas untuk memuat daftar butir soalnya.
-                                    </p>
+                                    {/* Tombol Force Submit: Untuk membantu peserta yang terkendala tidak bisa submit ujian */}
+                                    <button
+                                      type="button"
+                                      disabled={item.status_pengerjaan === 'selesai'}
+                                      onClick={() => setMpuActionModal({ type: 'FORCE_SUBMIT', item })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 disabled:opacity-40 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-extrabold text-xs transition shadow-sm"
+                                      title="Force Submit apabila peserta mengalami kendala tidak bisa menekan tombol kumpul/submit ujian"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Force Submit
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
-                            ) : activeSoalList.length === 0 ? (
-                              <tr>
-                                <td colSpan={5} className="p-10 text-center text-slate-500">
-                                  Paket soal <strong>{activePktObj.mata_pelajaran}</strong> belum memiliki butir soal. Klik tombol <strong>"+ Tambah Butir Soal"</strong> atau <strong>"Impor Butir Soal (.xlsx)"</strong> di kanan atas.
-                                </td>
-                              </tr>
-                            ) : (
-                              activeSoalList.map((s, idx) => {
-                                const jmlGbrOpsi = (s.gambar_opsi || []).slice(0, s.jumlah_opsi || 5).filter((g, i) => Boolean(g || s.preview_gambar_opsi?.[i])).length;
-                                const soalImgSrc = resolveImageSrc(s.file_gambar_soal, s.preview_gambar_soal);
-                                return (
-                                  <tr key={s.id_soal} className="hover:bg-slate-800/30">
-                                    <td className="p-3.5 pl-5 font-mono font-bold text-slate-400">{idx + 1}</td>
-                                    <td className="p-3.5">
-                                      <div className="font-bold text-indigo-300">{s.tipe_soal} {s.tipe_soal === 'PG' ? `(${s.jumlah_opsi} Opsi)` : ''}</div>
-                                      {s.tipe_soal === 'PG' && <div className="text-[10px] text-emerald-400 font-mono">Kunci: {s.kunci_jawaban}</div>}
-                                    </td>
-                                    <td className="p-3.5">
-                                      <span className="font-bold text-amber-300">{s.kategori_kognitif}</span>
-                                      <div className="text-[10px] text-slate-400">Bobot: {s.bobot_skor} Poin</div>
-                                    </td>
-                                    <td className="p-3.5">
-                                      <RichMathText text={s.teks_pertanyaan} className="text-white font-medium" />
-                                      {soalImgSrc && (
-                                        <div className="mt-2 flex items-center gap-2.5 p-2 rounded-xl bg-slate-950/90 border border-sky-500/30 w-fit">
-                                          <img src={soalImgSrc} alt="Gambar Soal" className="h-14 w-20 object-contain rounded-lg bg-slate-900 border border-slate-800 p-0.5" />
-                                          <div>
-                                            <span className="text-[10px] font-bold text-sky-300 block">Gambar Soal Terlampir</span>
-                                            <span className="text-[10px] font-mono text-slate-400">{getCleanFileName(s.file_gambar_soal, 'gambar_soal.jpg')}</span>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {jmlGbrOpsi > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                          {Array.from({ length: s.jumlah_opsi || 5 }).map((_, i) => {
-                                            const optSrc = resolveImageSrc(s.gambar_opsi?.[i], s.preview_gambar_opsi?.[i]);
-                                            if (!optSrc) return null;
-                                            const huruf = String.fromCharCode(65 + i);
-                                            return (
-                                              <div key={huruf} className="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-950 border border-emerald-500/30">
-                                                <img src={optSrc} alt={`Opsi ${huruf}`} className="w-9 h-9 object-contain rounded bg-slate-900" />
-                                                <span className="text-[10px] font-bold text-emerald-300 pr-1">Opsi {huruf}</span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="p-3.5 pr-5 text-right">
-                                      <div className="inline-flex items-center justify-end gap-2">
-                                        <button onClick={() => setPreviewSoalModal(s)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl border border-emerald-500/30 font-bold transition-all">
-                                          <Eye className="w-3.5 h-3.5" /> Preview
-                                        </button>
-                                        <button onClick={() => setSoalModal({
-                                          ...s,
-                                          opsi: Array.isArray(s.opsi) && s.opsi.length >= 5 ? [...s.opsi] : [...(s.opsi || []), '', '', '', '', ''].slice(0, 5),
-                                          gambar_opsi: Array.isArray(s.gambar_opsi) && s.gambar_opsi.length >= 5 ? [...s.gambar_opsi] : [...(s.gambar_opsi || []), null, null, null, null, null].slice(0, 5),
-                                          preview_gambar_opsi: Array.isArray(s.preview_gambar_opsi) && s.preview_gambar_opsi.length >= 5 ? [...s.preview_gambar_opsi] : ['', '', '', '', '']
-                                        })} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                          <Edit3 className="w-3.5 h-3.5" /> Edit
-                                        </button>
-                                        <button onClick={() => {
-                                          setMasterSoal(masterSoal.filter(x => x.id_soal !== s.id_soal));
-                                          syncToSheets({ action: 'delete', sheet: 'master_soal', pkField: 'id_soal', pkValue: s.id_soal });
-                                          triggerToast('Soal Dihapus', 'Butir soal dihapus.', 'warning');
-                                        }} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                          <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
+                            );
+                          })}
+                          {managedPesertaUjianList.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="p-10 text-center text-slate-500">
+                                Tidak ada data peserta ujian yang sesuai dengan filter Sesi Ujian, Mata Pelajaran, Kelas, atau Jurusan yang dipilih.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* 8. KONFIGURASI SESI */}
-              {activeTab === 'sesi' && (
-                <div className="space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                      <h3 className="font-bold text-white text-sm">Daftar Sesi Ujian Terjadwal (Waktu Indonesia: {zonaWaktuIndonesia})</h3>
-                      <p className="text-xs text-slate-400">Atur Waktu Buka/Tutup ({zonaWaktuIndonesia}), Durasi, Minimal Waktu Submit, Toggle Acak Soal & Jawaban, Anti-Cheat, Token Otomatis (30m), & Target Peserta Sesuai Paket Soal.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] flex items-center gap-2">
-                        <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                        <span className="text-slate-300">Rotasi Token Otomatis (30m):</span>
-                        <span className="font-mono font-black text-amber-300">{formatMinutesSeconds(tokenRotationSeconds)}</span>
+              {/* MODAL KONFIRMASI RESET UJIAN / FORCE SUBMIT PADA MENU MANAJEMEN PESERTA UJIAN */}
+              {mpuActionModal && (
+                <SimpleModal
+                  title={mpuActionModal.type === 'RESET_UJIAN' ? 'Konfirmasi Reset Ujian Peserta (Ulang dari Awal)' : 'Konfirmasi Force Submit Ujian Peserta'}
+                  onClose={() => setMpuActionModal(null)}
+                  maxWidth="max-w-lg"
+                >
+                  <div className="space-y-4 text-xs">
+                    {mpuActionModal.type === 'RESET_UJIAN' ? (
+                      <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/40 space-y-2">
+                        <div className="flex items-center gap-2 font-black text-sky-300 text-sm">
+                          <RefreshCw className="w-5 h-5 text-sky-400 shrink-0" />
+                          <span>Reset Ujian Agar Peserta Bisa Mengulang Kembali</span>
+                        </div>
+                        <p className="text-slate-200 leading-relaxed">
+                          Anda akan me-reset status ujian untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
+                        </p>
+                        <ul className="list-disc pl-5 text-[11px] text-sky-200/90 space-y-1 pt-1">
+                          <li>Status ujian yang sudah <strong>Selesai / Kehabisan Waktu / Dihentikan</strong> akan dikembalikan ke <strong>Belum Mulai</strong>.</li>
+                          <li>Durasi waktu hitung mundur akan dikembalikan penuh (<strong>{mpuActionModal.item.sesi?.durasi_menit || 60} Menit</strong>).</li>
+                          <li>Kunci perangkat (Single-Device Lock) dan catatan pelanggaran akan dibersihkan sehingga peserta dapat langsung menekan tombol <strong>"Mulai Kerjakan Sekarang"</strong> di HP/perangkatnya.</li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-2">
+                        <div className="flex items-center gap-2 font-black text-amber-300 text-sm">
+                          <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
+                          <span>Force Submit (Bantu Kumpulkan Ujian Peserta)</span>
+                        </div>
+                        <p className="text-slate-200 leading-relaxed">
+                          Anda akan mengeksekusi <strong>Force Submit</strong> untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
+                        </p>
+                        <ul className="list-disc pl-5 text-[11px] text-amber-200/90 space-y-1 pt-1">
+                          <li>Seluruh jawaban peserta yang telah terekam melalui Auto-Save akan langsung dikunci dan disahkan menjadi berstatus <strong>Selesai</strong>.</li>
+                          <li>Nilai Pilihan Ganda dan lembar jawaban Uraian peserta langsung masuk ke menu <strong>Koreksi & e-Rapor</strong>.</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setMpuActionModal(null)}
+                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                      >
+                        Batal
+                      </button>
+                      {mpuActionModal.type === 'RESET_UJIAN' ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            rotateAllActiveTokens(false);
-                            setTokenRotationSeconds(1800);
-                          }}
-                          className="ml-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500 text-amber-200 hover:text-slate-950 font-bold text-[10px] transition"
-                          title="Generate Ulang Seluruh Token Aktif Sekarang"
+                          onClick={() => handleResetUjianPeserta(mpuActionModal.item)}
+                          className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-sky-500/20"
                         >
-                          Acak Ulang
+                          <RefreshCw className="w-4 h-4" /> Ya, Reset Ujian Peserta
                         </button>
-                      </div>
-                      <button
-                        onClick={() => setSesiModal(buildInitialSesiModalState(selectedPaketId || paketSoal[0]?.id_paket || 201))}
-                        className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
-                      >
-                        <Plus className="w-4 h-4" /> Tambah Sesi Ujian
-                      </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleForceSubmitPeserta(mpuActionModal.item)}
+                          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Ya, Eksekusi Force Submit
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
-                          <th className="p-3.5 pl-5">Nama Sesi</th>
-                          <th className="p-3.5">Jadwal Buka - Tutup (Waktu Indonesia)</th>
-                          <th className="p-3.5">Durasi & Min. Submit</th>
-                          <th className="p-3.5">Toggle Acak Soal & Jawaban, Anti-Cheat & Token</th>
-                          <th className="p-3.5">Target Peserta</th>
-                          <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {filteredSesi.map(s => {
-                          const pktSesi = paketSoal.find(p => String(p.id_paket) === String(s.id_paket));
-                          const zonaSesi = s.zona_waktu || zonaWaktuIndonesia || 'WIB';
-                          const stokSoalPkt = masterSoal.filter(q => String(q.id_paket) === String(s.id_paket));
-                          const stokPG = stokSoalPkt.filter(q => q.tipe_soal === 'PG').length;
-                          const stokUraian = stokSoalPkt.filter(q => q.tipe_soal === 'Uraian').length;
-                          const tarikPG = s.limit_soal_pg !== undefined ? Number(s.limit_soal_pg) : stokPG;
-                          const tarikUraian = s.limit_soal_uraian !== undefined ? Number(s.limit_soal_uraian) : stokUraian;
-                          return (
-                            <tr key={s.id_sesi} className="hover:bg-slate-800/30">
-                              <td className="p-3.5 pl-5">
-                                <div className="font-bold text-white">{s.nama_sesi_spesifik}</div>
-                                <div className="text-[11px] text-slate-400 mt-0.5">
-                                  {pktSesi ? `${pktSesi.mata_pelajaran} (Tingkat ${pktSesi.tingkat || pktSesi.kelas || 'X'} • ${pktSesi.jurusan})` : 'Paket Soal'}
-                                </div>
-                              </td>
-                              <td className="p-3.5 font-mono text-[11px]">
-                                <div className="text-emerald-400">Buka : {formatJadwalIndonesia(s.waktu_buka, zonaSesi)}</div>
-                                <div className="text-rose-400">Tutup: {formatJadwalIndonesia(s.waktu_tutup, zonaSesi)}</div>
-                              </td>
-                              <td className="p-3.5">
-                                <div className="font-bold text-white">{s.durasi_menit} Mnt <span className="text-amber-400 font-normal">(Min. Submit: {s.minimal_menit_submit}m)</span></div>
-                                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-[10px] font-extrabold text-sky-300">
-                                  <BookOpen className="w-3 h-3 text-sky-400" />
-                                  <span>Ditarik: {tarikPG} PG + {tarikUraian} Uraian ({tarikPG + tarikUraian} Soal)</span>
-                                </div>
-                              </td>
-                              <td className="p-3.5">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {/* Quick Toggle ON/OFF Acak Soal & Jawaban (1 Toggle Terpadu) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const updated = { ...s, is_acak_soal: !s.is_acak_soal, peserta_ids_json: JSON.stringify(s.peserta_ids || []) };
-                                      setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
-                                      syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
-                                      triggerToast(
-                                        `Acak Soal & Jawaban: ${updated.is_acak_soal ? 'ON' : 'OFF'}`,
-                                        `Pengacakan urutan soal & opsi jawaban untuk "${s.nama_sesi_spesifik}" diubah ke ${updated.is_acak_soal ? 'AKTIF' : 'NONAKTIF'}.`
-                                      );
-                                    }}
-                                    className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
-                                      s.is_acak_soal
-                                        ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400'
-                                    }`}
-                                    title="Klik untuk Toggle ON/OFF Acak Urutan Soal & Opsi Jawaban"
-                                  >
-                                    <span>Acak Soal & Jawaban:</span>
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${s.is_acak_soal ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                      {s.is_acak_soal ? 'ON' : 'OFF'}
-                                    </span>
-                                  </button>
-
-                                  {/* Quick Toggle ON/OFF Proteksi Anti-Kecurangan */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const nextProc = !s.is_proctoring_active;
-                                      const updated = { ...s, is_proctoring_active: nextProc, enable_watermark: nextProc, peserta_ids_json: JSON.stringify(s.peserta_ids || []) };
-                                      setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
-                                      syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
-                                      triggerToast(
-                                        `Anti-Cheat: ${nextProc ? 'ON' : 'OFF'}`,
-                                        `Sistem Proteksi Anti-Kecurangan (3-Strike & Watermark) diubah ke ${nextProc ? 'AKTIF' : 'NONAKTIF'}.`
-                                      );
-                                    }}
-                                    className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
-                                      s.is_proctoring_active
-                                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400'
-                                    }`}
-                                    title="Klik untuk Toggle ON/OFF Sistem Proteksi Anti-Kecurangan"
-                                  >
-                                    <ShieldCheck className="w-3.5 h-3.5" />
-                                    <span>Anti-Cheat:</span>
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${s.is_proctoring_active ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
-                                      {s.is_proctoring_active ? 'ON' : 'OFF'}
-                                    </span>
-                                  </button>
-
-                                  {/* Quick Toggle ON/OFF Penggunaan Token Ujian (Auto-Generate saat ON & Rotasi 30 Menit) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const nextReq = !s.require_token;
-                                      const generatedToken = nextReq ? generateExamToken() : '';
-                                      const updated = {
-                                        ...s,
-                                        require_token: nextReq,
-                                        token: generatedToken,
-                                        token_updated_at: new Date().toISOString(),
-                                        peserta_ids_json: JSON.stringify(s.peserta_ids || [])
-                                      };
-                                      setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
-                                      syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
-                                      triggerToast(
-                                        `Token Ujian: ${nextReq ? 'ON (' + generatedToken + ')' : 'OFF'}`,
-                                        nextReq
-                                          ? `Token otomatis di-generate (${generatedToken}) dan akan berganti otomatis setiap 30 menit.`
-                                          : `Penggunaan token untuk sesi "${s.nama_sesi_spesifik}" dinonaktifkan.`
-                                      );
-                                    }}
-                                    className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
-                                      s.require_token
-                                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400'
-                                    }`}
-                                    title="Klik untuk Toggle ON/OFF Penggunaan Token Ujian"
-                                  >
-                                    <KeyRound className="w-3.5 h-3.5" />
-                                    <span>Token:</span>
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${s.require_token ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
-                                      {s.require_token ? 'ON' : 'OFF'}
-                                    </span>
-                                    {s.require_token && (
-                                      <span className="font-mono font-black text-amber-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-amber-500/30">
-                                        {s.token || 'SKR-892A'}
-                                      </span>
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-3.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPreviewSesiSearch('');
-                                    setPreviewSesiModal(s);
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold text-xs transition"
-                                  title="Klik untuk melihat daftar nama peserta target"
-                                >
-                                  {(s.peserta_ids || []).length} Siswa
-                                </button>
-                              </td>
-                              <td className="p-3.5 pr-5 text-right">
-                                <div className="inline-flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setPreviewSesiSearch('');
-                                      setPreviewSesiModal(s);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl border border-emerald-500/30 font-bold transition-all"
-                                    title="Preview Sesi & Daftar Peserta Target"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" /> Preview
-                                  </button>
-                                  <button onClick={() => {
-                                    setEnrollFilterTingkat('ALL');
-                                    setEnrollFilterJurusan('ALL');
-                                    setEnrollFilterKelas('ALL');
-                                    setEnrollFilterAgama('ALL');
-                                    setSesiModal({ ...s, zona_waktu: s.zona_waktu || zonaWaktuIndonesia || 'WIB' });
-                                  }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 font-bold transition-all">
-                                    <Edit3 className="w-3.5 h-3.5" /> Edit
-                                  </button>
-                                  <button onClick={() => {
-                                    setSesiUjian(sesiUjian.filter(x => x.id_sesi !== s.id_sesi));
-                                    syncToSheets({ action: 'delete', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi });
-                                    triggerToast('Sesi Dihapus', 'Sesi ujian dihapus.', 'warning');
-                                  }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 font-bold transition-all">
-                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                </SimpleModal>
               )}
 
               {/* 9. KOREKSI & E-RAPOR */}
