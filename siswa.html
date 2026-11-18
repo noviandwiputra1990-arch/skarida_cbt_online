@@ -877,6 +877,21 @@
           if (raw) savedLocal = JSON.parse(raw);
         } catch (_) {}
 
+        // Jika Admin/Guru telah menekan tombol "Reset Ujian" di server (status_pengerjaan === 'belum'),
+        // bersihkan cache selesai/dihentikan lokal agar peserta dapat langsung mengulang ujian dari awal!
+        if (serverRecord && serverRecord.status_pengerjaan === 'belum') {
+          if (savedLocal && (savedLocal.status_pengerjaan === 'selesai' || savedLocal.status_pengerjaan === 'dihentikan_sistem')) {
+            try {
+              localStorage.removeItem(getLocalExamKey(sesiId, userId));
+              localStorage.removeItem(getActivePointerKey(userId));
+            } catch (_) {}
+            savedLocal = null;
+          }
+          if (!savedLocal) {
+            return { status: 'belum', savedLocal: null, serverRecord };
+          }
+        }
+
         // Jika server menyatakan dihentikan_sistem atau selesai, prioritaskan status server
         if (serverRecord?.status_pengerjaan === 'dihentikan_sistem') {
           return { status: 'dihentikan_sistem', savedLocal, serverRecord };
