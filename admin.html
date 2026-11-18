@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
+  <link rel="icon" type="image/png" href="logo_skarida.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -124,46 +125,125 @@
       Play, LogOut, LayoutGrid, Flag, Maximize2, Wifi, ZoomIn, Download, Database
     } = LucideIcons;
 
-    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+    const LOGO_PETAL_ANGLES = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
+    const LOGO_GEAR_ANGLES = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
+
+    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
       <defs>
-        <path id="topArc" d="M 52,120 A 68,68 0 1,1 188,120" />
-        <path id="botArc" d="M 192,120 A 72,72 0 1,1 48,120" />
+        <path id="topArc" d="M 75.5,150 A 74.5,74.5 0 1,1 224.5,150" />
+        <path id="botArc" d="M 64.5,150 A 85.5,85.5 0 0,0 235.5,150" />
+        <path id="ribbonArc" d="M 111,191 Q 150,202 189,191" />
+        <clipPath id="globeClip">
+          <circle cx="150" cy="145" r="19.5" />
+        </clipPath>
       </defs>
-      <g transform="translate(120,120)">
-        <path d="M0,-116 C18,-98 30,-95 36,-110 C45,-88 58,-82 68,-95 C68,-72 78,-62 95,-68 C82,-48 88,-35 110,-36 C95,-20 98,-8 116,0 C98,8 95,20 110,36 C88,35 82,48 95,68 C78,62 68,72 68,95 C58,82 45,88 36,110 C30,95 18,98 0,116 C-18,98 -30,95 -36,110 C-45,88 -58,82 -68,95 C-68,72 -78,62 -95,68 C-82,48 -88,35 -110,36 C-95,20 -98,8 -116,0 C-98,-8 -95,-20 -110,-36 C-88,-35 -82,-48 -95,-68 C-78,-62 -68,-72 -68,-95 C-58,-82 -45,-88 -36,-110 C-30,-95 -18,-98 0,-116 Z" fill="#1a1464" stroke="#1a1464" stroke-width="4" stroke-linejoin="round"/>
-        <path d="M0,-105 C14,-90 26,-88 33,-98 C40,-80 52,-75 62,-85 C62,-66 70,-58 85,-62 C75,-45 80,-33 98,-33 C88,-18 90,-7 105,0 C90,7 88,18 98,33 C80,33 75,45 85,62 C70,58 62,66 62,85 C52,75 40,80 33,98 C26,88 14,90 0,105 C-14,90 -26,88 -33,98 C-40,80 -52,75 -62,85 C-62,66 -70,58 -85,62 C-75,45 -80,33 -98,33 C-88,18 -90,7 -105,0 C-90,-7 -88,-18 -98,-33 C-80,-33 -75,-45 -85,-62 C-70,-58 -62,-66 -62,-85 C-52,-75 -40,-80 -33,-98 C-26,-88 -14,-90 0,-105 Z" fill="#0095d9"/>
-      </g>
-      <circle cx="120" cy="120" r="82" fill="#0095d9" stroke="#1a1464" stroke-width="5"/>
-      <circle cx="120" cy="120" r="56" fill="#1a1464" stroke="#0095d9" stroke-width="2"/>
-      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="13.5" letter-spacing="0.8">
+      ${LOGO_PETAL_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 150)">
+          <path d="M 111,40 C 120,16 141,14 150,3 C 159,14 180,16 189,40 L 178,68 L 122,68 Z" fill="#181265" stroke="#181265" stroke-width="2" stroke-linejoin="round"/>
+        </g>
+        <g transform="rotate(${a + 18} 150 150)">
+          <path d="M 128,35 Q 150,43 172,35 L 168,68 L 132,68 Z" fill="#181265"/>
+        </g>
+      `).join('')}
+      ${LOGO_PETAL_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 150)">
+          <path d="M 125,55 C 120,44 123,33 131,26 C 139,19 146,17 150,11 C 154,17 161,19 169,26 C 177,33 180,44 175,55 Z" fill="#0093dd"/>
+        </g>
+        <g transform="rotate(${a + 18} 150 150)">
+          <path d="M 145,42 C 147,47 148,51 147,55 C 144,52 143,47 145,42 Z" fill="#0093dd"/>
+          <path d="M 155,42 C 153,47 152,51 153,55 C 156,52 157,47 155,42 Z" fill="#0093dd"/>
+        </g>
+      `).join('')}
+      <circle cx="150" cy="150" r="99.5" fill="#181265"/>
+      <circle cx="150" cy="150" r="93.5" fill="#0093dd"/>
+      <circle cx="150" cy="150" r="65.5" fill="#181265"/>
+      <text fill="#ffffff" font-family="'Arial Narrow', Impact, Arial, sans-serif" font-weight="900" font-size="16.5" letter-spacing="0.6">
         <textPath href="#topArc" startOffset="50%" text-anchor="middle">SMK NEGERI 2 TEGALSARI</textPath>
       </text>
-      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="12.5" letter-spacing="0.6">
+      <text fill="#ffffff" font-family="'Arial Narrow', Impact, Arial, sans-serif" font-weight="900" font-size="15.8" letter-spacing="0.7">
         <textPath href="#botArc" startOffset="50%" text-anchor="middle">TEGALSARI - BANYUWANGI</textPath>
       </text>
-      <polygon points="120,69 123,77 131,77 125,82 127,90 120,85 113,90 115,82 109,77 117,77" fill="#ffde00"/>
-      <path d="M92,145 C78,128 80,98 98,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
-      <path d="M148,145 C162,128 160,98 142,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
-      <circle cx="120" cy="120" r="26" fill="#0095d9" stroke="#ffde00" stroke-width="2" stroke-dasharray="6 3"/>
-      <circle cx="120" cy="120" r="20" fill="#ffde00" stroke="#1a1464" stroke-width="1.5"/>
-      <ellipse cx="120" cy="120" rx="18" ry="9" fill="none" stroke="#1a1464" stroke-width="1.2"/>
-      <ellipse cx="120" cy="120" rx="9" ry="18" fill="none" stroke="#1a1464" stroke-width="1.2"/>
-      <line x1="102" y1="120" x2="138" y2="120" stroke="#1a1464" stroke-width="1.2"/>
-      <line x1="120" y1="102" x2="120" y2="138" stroke="#1a1464" stroke-width="1.2"/>
-      <path d="M109,124 L120,127 L131,124 L131,115 L120,118 L109,115 Z" fill="#ffffff" stroke="#e11d48" stroke-width="1.5"/>
-      <path d="M86,152 Q120,162 154,152 L150,163 Q120,172 90,163 Z" fill="#0095d9" stroke="#ffffff" stroke-width="1"/>
+      <polygon points="150,87 153.3,94.8 161.8,95.2 155.2,100.5 157.5,108.6 150,103.8 142.5,108.6 144.8,100.5 138.2,95.2 146.7,94.8" fill="#ffd600" stroke="#181265" stroke-width="0.7"/>
+      <path d="M 125,180 C 97,162 98,120 126,102" fill="none" stroke="#ffd600" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 175,180 C 203,162 202,120 174,102" fill="none" stroke="#ffd600" stroke-width="2" stroke-linecap="round"/>
+      <g fill="#ffd600" stroke="#181265" stroke-width="0.5">
+        <ellipse cx="116" cy="172" rx="5.5" ry="2.4" transform="rotate(35 116 172)"/>
+        <ellipse cx="122" cy="168" rx="5.2" ry="2.2" transform="rotate(-25 122 168)"/>
+        <ellipse cx="108" cy="162" rx="5.8" ry="2.5" transform="rotate(25 108 162)"/>
+        <ellipse cx="115" cy="158" rx="5.2" ry="2.2" transform="rotate(-35 115 158)"/>
+        <ellipse cx="103" cy="150" rx="5.8" ry="2.5" transform="rotate(15 103 150)"/>
+        <ellipse cx="111" cy="147" rx="5.2" ry="2.2" transform="rotate(-45 111 147)"/>
+        <ellipse cx="102" cy="138" rx="5.8" ry="2.5" transform="rotate(0 102 138)"/>
+        <ellipse cx="110" cy="136" rx="5.2" ry="2.2" transform="rotate(-55 110 136)"/>
+        <ellipse cx="105" cy="126" rx="5.8" ry="2.4" transform="rotate(-15 105 126)"/>
+        <ellipse cx="113" cy="125" rx="5.2" ry="2.2" transform="rotate(-65 113 125)"/>
+        <ellipse cx="111" cy="115" rx="5.5" ry="2.3" transform="rotate(-28 111 115)"/>
+        <ellipse cx="119" cy="116" rx="5" ry="2.1" transform="rotate(-75 119 116)"/>
+        <ellipse cx="119" cy="106" rx="5.2" ry="2.2" transform="rotate(-40 119 106)"/>
+        <ellipse cx="126" cy="108" rx="4.8" ry="2" transform="rotate(-80 126 108)"/>
+        <ellipse cx="184" cy="172" rx="5.5" ry="2.4" transform="rotate(-35 184 172)"/>
+        <ellipse cx="178" cy="168" rx="5.2" ry="2.2" transform="rotate(25 178 168)"/>
+        <ellipse cx="192" cy="162" rx="5.8" ry="2.5" transform="rotate(-25 192 162)"/>
+        <ellipse cx="185" cy="158" rx="5.2" ry="2.2" transform="rotate(35 185 158)"/>
+        <ellipse cx="197" cy="150" rx="5.8" ry="2.5" transform="rotate(-15 197 150)"/>
+        <ellipse cx="189" cy="147" rx="5.2" ry="2.2" transform="rotate(45 189 147)"/>
+        <ellipse cx="198" cy="138" rx="5.8" ry="2.5" transform="rotate(0 198 138)"/>
+        <ellipse cx="190" cy="136" rx="5.2" ry="2.2" transform="rotate(55 190 136)"/>
+        <ellipse cx="195" cy="126" rx="5.8" ry="2.4" transform="rotate(15 195 126)"/>
+        <ellipse cx="187" cy="125" rx="5.2" ry="2.2" transform="rotate(65 187 125)"/>
+        <ellipse cx="189" cy="115" rx="5.5" ry="2.3" transform="rotate(28 189 115)"/>
+        <ellipse cx="181" cy="116" rx="5" ry="2.1" transform="rotate(75 181 116)"/>
+        <ellipse cx="181" cy="106" rx="5.2" ry="2.2" transform="rotate(40 181 106)"/>
+        <ellipse cx="174" cy="108" rx="4.8" ry="2" transform="rotate(80 174 108)"/>
+      </g>
+      ${LOGO_GEAR_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 145)">
+          <rect x="146.8" y="111.5" width="6.4" height="8" rx="1" fill="#0093dd"/>
+        </g>
+      `).join('')}
+      <circle cx="150" cy="145" r="28" fill="#0093dd"/>
+      <circle cx="150" cy="145" r="22.5" fill="#181265" stroke="#ffffff" stroke-width="1.4"/>
+      <circle cx="150" cy="145" r="20.2" fill="#181265" stroke="#ffd600" stroke-width="1.8"/>
+      <g clip-path="url(#globeClip)">
+        <ellipse cx="150" cy="145" rx="19" ry="7.5" fill="none" stroke="#ffd600" stroke-width="1.2"/>
+        <ellipse cx="150" cy="145" rx="19" ry="14" fill="none" stroke="#ffd600" stroke-width="1.1"/>
+        <ellipse cx="150" cy="145" rx="7.5" ry="19" fill="none" stroke="#ffd600" stroke-width="1.2"/>
+        <ellipse cx="150" cy="145" rx="14" ry="19" fill="none" stroke="#ffd600" stroke-width="1.1"/>
+        <line x1="130" y1="145" x2="170" y2="145" stroke="#ffd600" stroke-width="1.2"/>
+        <line x1="150" y1="125" x2="150" y2="165" stroke="#ffd600" stroke-width="1.2"/>
+        <path d="M 131,150 Q 140,155 148,154 L 147,162 Q 137,161 131,154 Z" fill="#e52420"/>
+        <path d="M 169,150 Q 160,155 152,154 L 153,162 Q 163,161 169,154 Z" fill="#e52420"/>
+        <path d="M 134,155 Q 142,160 148,159 L 147,164 Q 139,163 134,158 Z" fill="#c81e1e"/>
+        <path d="M 166,155 Q 158,160 152,159 L 153,164 Q 161,163 166,158 Z" fill="#c81e1e"/>
+        <path d="M 146,155 L 154,155 L 152,165 L 148,165 Z" fill="#181265"/>
+      </g>
+      <path d="M 135.5,150 L 150,153.5 L 164.5,150 L 164.5,138.5 L 150,142 L 135.5,138.5 Z" fill="#e52420"/>
+      <path d="M 137,148.5 L 150,151.8 L 163,148.5 L 163,137.5 L 150,140.8 L 137,137.5 Z" fill="#ffffff" stroke="#e52420" stroke-width="0.9"/>
+      <line x1="150" y1="140.8" x2="150" y2="151.8" stroke="#181265" stroke-width="1.3"/>
+      <line x1="139.5" y1="141.5" x2="147.5" y2="143.2" stroke="#181265" stroke-width="0.8"/>
+      <line x1="139.5" y1="144.8" x2="147.5" y2="146.5" stroke="#181265" stroke-width="0.8"/>
+      <line x1="160.5" y1="141.5" x2="152.5" y2="143.2" stroke="#181265" stroke-width="0.8"/>
+      <line x1="160.5" y1="144.8" x2="152.5" y2="146.5" stroke="#181265" stroke-width="0.8"/>
+      <path d="M 101,182 L 114,178 L 114,191 L 99,193 L 105,187 Z" fill="#0093dd" stroke="#181265" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M 199,182 L 186,178 L 186,191 L 201,193 L 195,187 Z" fill="#0093dd" stroke="#181265" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M 109,180 Q 150,192 191,180 L 188,194 Q 150,206 112,194 Z" fill="#0093dd" stroke="#181265" stroke-width="1.5" stroke-linejoin="round"/>
+      <text fill="#ffffff" font-family="'Arial Narrow', Arial, sans-serif" font-weight="900" font-size="8.2" letter-spacing="0.45">
+        <textPath href="#ribbonArc" startOffset="50%" text-anchor="middle">MABADI'UL IHSAN</textPath>
+      </text>
     </svg>`;
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
     function SkaridaLogo({ className = 'w-10 h-10' }) {
-      const [imgErr, setImgErr] = useState(false);
       return (
         <img
-          src={imgErr ? LOGO_DATA_URI : 'big_logo.png'}
-          onError={() => setImgErr(true)}
+          src="logo_skarida.png"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = LOGO_DATA_URI;
+          }}
           alt="Logo SMK Negeri 2 Tegalsari"
-          className={`${className} object-contain shrink-0 drop-shadow-md select-none`}
+          className={`${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`}
         />
       );
     }
@@ -1310,7 +1390,7 @@
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = LOGO_DATA_URI;
+        link.href = 'logo_skarida.png';
       }, []);
 
       useEffect(() => {
@@ -1581,6 +1661,8 @@
                     if (typeof val === 'boolean') return val;
                     return String(val).toUpperCase() === 'TRUE' || String(val) === '1';
                   };
+                  const hasLimitPG = s.limit_soal_pg !== undefined && s.limit_soal_pg !== null && String(s.limit_soal_pg).trim() !== '';
+                  const hasLimitUraian = s.limit_soal_uraian !== undefined && s.limit_soal_uraian !== null && String(s.limit_soal_uraian).trim() !== '';
                   return {
                     ...s,
                     id_sesi: s.id_sesi || s.id || idx + 501,
@@ -1597,8 +1679,8 @@
                     enable_watermark: parseBool(s.enable_watermark, true),
                     require_token: parseBool(s.require_token, true),
                     token: String(s.token || '').trim(),
-                    limit_soal_pg: Number(s.limit_soal_pg) || 25,
-                    limit_soal_uraian: Number(s.limit_soal_uraian) || 5,
+                    limit_soal_pg: hasLimitPG ? Math.max(0, Number(s.limit_soal_pg)) : 25,
+                    limit_soal_uraian: hasLimitUraian ? Math.max(0, Number(s.limit_soal_uraian)) : 5,
                     peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
                   };
                 })
@@ -2301,50 +2383,19 @@
         });
       }, [pesertaUjian, sesiUjian, users, paketSoal, mpuFilterSesi, mpuFilterMapel, mpuFilterJurusan, mpuFilterKelas, mpuFilterStatus, mpuSearch]);
 
-      // Eksekusi Reset Ujian Peserta (Agar Peserta Bisa Mengulang Ujian dari Awal)
+      // Eksekusi Reset Ujian Peserta (Menghapus seluruh data hasil & log ujian sebelumnya termasuk pada Rekap Nilai)
       const handleResetUjianPeserta = (item) => {
         if (!item) return;
-        const durDetik = (Number(item.sesi?.durasi_menit) || 60) * 60;
-        const resetRecord = {
-          id_peserta_ujian: item.id_peserta_ujian || `PU-${item.id_sesi}-${item.id_user}`,
-          id_sesi: item.id_sesi,
-          id_user: item.id_user,
-          waktu_mulai: null,
-          waktu_selesai: null,
-          durasi_aktual: '-',
-          sisa_detik: durDetik,
-          status_pengerjaan: 'belum',
-          jumlah_pelanggaran: 0,
-          jml_terjawab: 0,
-          jml_benar_pg: 0,
-          jml_salah_pg: 0,
-          skor_pg: 0,
-          skor_uraian: 0,
-          nilai_total: 0,
-          jawaban_pg_siswa: {},
-          jawaban_pg_siswa_json: '{}',
-          detail_uraian: {},
-          detail_skor_uraian_json: '{}',
-          jawaban_uraian_teks: '',
-          log_pelanggaran: [],
-          user_agent_device: '-'
-        };
+        const resetId = item.id_peserta_ujian || `PU-${item.id_sesi}-${item.id_user}`;
 
-        setPesertaUjian(prev => {
-          const exists = prev.some(
-            p => String(p.id_peserta_ujian) === String(resetRecord.id_peserta_ujian) ||
-                 (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user))
-          );
-          if (exists) {
-            return prev.map(p =>
-              (String(p.id_peserta_ujian) === String(resetRecord.id_peserta_ujian) ||
-               (String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user)))
-                ? resetRecord
-                : p
-            );
-          }
-          return [...prev, resetRecord];
-        });
+        // Hapus seluruh rekaman hasil ujian & log pelanggaran sebelumnya dari state pesertaUjian
+        // sehingga peserta juga otomatis terhapus dari Rekap Nilai & Laporan Hasil Ujian
+        setPesertaUjian(prev =>
+          prev.filter(
+            p => String(p.id_peserta_ujian) !== String(resetId) &&
+                 !(String(p.id_sesi) === String(item.id_sesi) && String(p.id_user) === String(item.id_user))
+          )
+        );
 
         // Kosongkan session_token pada user agar tidak terkunci Single-Device Lock
         setUsers(prev => prev.map(u => String(u.id_user) === String(item.id_user) ? { ...u, session_token: '' } : u));
@@ -2357,16 +2408,15 @@
 
         syncToSheets({
           action: 'resetExamRetake',
-          id_peserta_ujian: resetRecord.id_peserta_ujian,
+          id_peserta_ujian: resetId,
           id_sesi: item.id_sesi,
-          id_user: item.id_user,
-          sisa_detik: durDetik
+          id_user: item.id_user
         });
 
         setMpuActionModal(null);
         triggerToast(
-          'Reset Ujian Berhasil',
-          `Ujian ${item.nama_lengkap} (${item.mata_pelajaran}) telah di-reset ke status "Belum Mulai". Peserta kini dapat mengerjakan ulang dari awal.`
+          'Reset Ujian & Hapus Log Berhasil',
+          `Seluruh data log pelanggaran, jawaban, dan nilai rekap ujian ${item.nama_lengkap} (${item.mata_pelajaran}) telah dihapus. Peserta dapat mengulang ujian dari awal.`
         );
       };
 
@@ -2492,6 +2542,8 @@
 
       const filteredRaporPeserta = useMemo(() => {
         return pesertaUjian.filter(pu => {
+          // Peserta yang belum memulai atau telah di-reset tidak ditampilkan di Rekap Nilai
+          if (!pu || pu.status_pengerjaan === 'belum') return false;
           const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
           const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
           const paket = paketSoal.find(p => String(p.id_paket) === String(sesi?.id_paket));
@@ -2504,7 +2556,8 @@
         });
       }, [pesertaUjian, users, sesiUjian, paketSoal, raporFilterMapel, raporFilterTingkat, raporFilterKelas]);
 
-      // Helper kalkulasi metrik detail hasil ujian per peserta (Jumlah Terjawab, Benar PG, Salah PG, Skor PG, Skor Uraian, Nilai)
+      // Helper kalkulasi metrik detail hasil ujian per peserta
+      // Jumlah soal yang ditampilkan mengacu penuh pada ketetapan Konfigurasi Sesi (limit_soal_pg + limit_soal_uraian)
       const getPesertaReportMetrics = (pu) => {
         const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
         const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
@@ -2513,33 +2566,41 @@
         const pgQuestions = soalPaket.filter(s => s.tipe_soal === 'PG');
         const uraianQuestions = soalPaket.filter(s => s.tipe_soal === 'Uraian');
 
-        const limitPG = Number(sesi?.limit_soal_pg) || pgQuestions.length || 25;
-        const limitUraian = Number(sesi?.limit_soal_uraian) || uraianQuestions.length || 2;
+        const hasCustomLimitPG = sesi && sesi.limit_soal_pg !== undefined && sesi.limit_soal_pg !== null && String(sesi.limit_soal_pg).trim() !== '';
+        const hasCustomLimitUraian = sesi && sesi.limit_soal_uraian !== undefined && sesi.limit_soal_uraian !== null && String(sesi.limit_soal_uraian).trim() !== '';
+
+        const limitPG = hasCustomLimitPG ? Math.max(0, Number(sesi.limit_soal_pg)) : pgQuestions.length;
+        const limitUraian = hasCustomLimitUraian ? Math.max(0, Number(sesi.limit_soal_uraian)) : uraianQuestions.length;
         const totalSoalSesi = limitPG + limitUraian;
 
         const skorPG = Number(pu.skor_pg) || 0;
         const skorUraian = Number(pu.skor_uraian) || 0;
         const nilaiTotal = skorPG + skorUraian;
 
-        // Hitung jumlah benar PG, salah PG, dan soal terjawab
-        let jmlBenarPG = pu.jml_benar_pg;
-        let jmlSalahPG = pu.jml_salah_pg;
-        let jmlTerjawab = pu.jml_terjawab;
+        const savedPgMap = pu.jawaban_pg_siswa || {};
+        const answeredPgKeys = Object.keys(savedPgMap).filter(k => String(savedPgMap[k] || '').trim() !== '');
+        const answeredUraianCount = uraianQuestions.filter(q => {
+          const jwb = pu.detail_uraian?.[q.id_soal]?.jawaban;
+          return jwb !== undefined && String(jwb).trim() !== '';
+        }).length || (pu.jawaban_uraian_teks && String(pu.jawaban_uraian_teks).trim() !== '' ? 1 : 0);
 
-        if (jmlBenarPG === undefined || jmlBenarPG === null) {
-          jmlBenarPG = limitPG > 0 ? Math.min(limitPG, Math.round((skorPG / 100) * limitPG)) : 0;
-        }
-        if (jmlSalahPG === undefined || jmlSalahPG === null) {
-          jmlSalahPG = pu.status_pengerjaan === 'belum' ? 0 : Math.max(0, limitPG - jmlBenarPG);
-        }
-        if (jmlTerjawab === undefined || jmlTerjawab === null) {
-          const terjawabUraian = uraianQuestions.length > 0
-            ? uraianQuestions.filter(q => pu.detail_uraian?.[q.id_soal]?.jawaban || pu.jawaban_uraian_teks).length
-            : (pu.jawaban_uraian_teks ? 1 : 0);
-          jmlTerjawab = pu.status_pengerjaan === 'belum' ? 0 : Math.min(totalSoalSesi, jmlBenarPG + jmlSalahPG + terjawabUraian);
-        }
+        let jmlBenarPG = (pu.jml_benar_pg !== undefined && pu.jml_benar_pg !== null && pu.jml_benar_pg !== '')
+          ? Number(pu.jml_benar_pg)
+          : pgQuestions.filter(q => String(savedPgMap[q.id_soal] || '').trim().toUpperCase() === String(q.kunci_jawaban || 'A').trim().toUpperCase()).length;
 
-        const maxBobotUraian = uraianQuestions.reduce((acc, q) => acc + (Number(q.bobot_skor) || 0), 0);
+        let jmlSalahPG = (pu.jml_salah_pg !== undefined && pu.jml_salah_pg !== null && pu.jml_salah_pg !== '')
+          ? Number(pu.jml_salah_pg)
+          : Math.max(0, answeredPgKeys.length - jmlBenarPG);
+
+        let jmlTerjawab = (pu.jml_terjawab !== undefined && pu.jml_terjawab !== null && pu.jml_terjawab !== '')
+          ? Number(pu.jml_terjawab)
+          : (answeredPgKeys.length + answeredUraianCount);
+
+        jmlBenarPG = Math.min(limitPG, Math.max(0, jmlBenarPG));
+        jmlSalahPG = Math.min(Math.max(0, limitPG - jmlBenarPG), Math.max(0, jmlSalahPG));
+        jmlTerjawab = Math.min(totalSoalSesi, Math.max(0, jmlTerjawab));
+
+        const maxBobotUraian = uraianQuestions.slice(0, limitUraian > 0 ? limitUraian : uraianQuestions.length).reduce((acc, q) => acc + (Number(q.bobot_skor) || 0), 0);
 
         return {
           user: u,
@@ -2572,7 +2633,7 @@
           'JURUSAN',
           'KELAS',
           'MATA PELAJARAN',
-          'JUMLAH SOAL TERJAWAB',
+          'JML SOAL TERJAWAB / SOAL SESI',
           'JUMLAH JAWABAN BENAR PG',
           'JUMLAH JAWABAN SALAH PG',
           'TOTAL SKOR PG',
@@ -2589,7 +2650,7 @@
             m.jurusan,
             m.kelas,
             m.paket?.mata_pelajaran || '-',
-            m.jmlTerjawab,
+            `${m.jmlTerjawab} / ${m.totalSoalSesi}`,
             m.jmlBenarPG,
             m.jmlSalahPG,
             m.skorPG,
@@ -2625,6 +2686,9 @@
               jurusan: m.jurusan || '-',
               kelas: kelasName,
               nama_sesi: m.sesi?.nama_sesi_spesifik || '-',
+              limitPG: m.limitPG,
+              limitUraian: m.limitUraian,
+              totalSoalSesi: m.totalSoalSesi,
               items: []
             });
           }
@@ -3735,11 +3799,25 @@
                         <tbody className="divide-y divide-slate-800/60">
                           {filteredCommandPeserta.map(pu => {
                             const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
+                            const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
+                            const paket = paketSoal.find(p => String(p.id_paket) === String(sesi?.id_paket));
+                            const actionItem = {
+                              ...pu,
+                              user: u,
+                              sesi,
+                              paket,
+                              nama_lengkap: u?.nama_lengkap || `Peserta #${pu.id_user}`,
+                              username_nisn: u?.username_nisn || String(pu.id_user),
+                              kelas: u?.kelas || '-',
+                              jurusan: u?.jurusan || paket?.jurusan || '-',
+                              mata_pelajaran: paket?.mata_pelajaran || sesi?.nama_sesi_spesifik || '-',
+                              nama_sesi: sesi?.nama_sesi_spesifik || `Sesi #${pu.id_sesi}`
+                            };
                             return (
                               <tr key={pu.id_peserta_ujian} className="hover:bg-slate-800/30">
                                 <td className="p-3.5 pl-5">
-                                  <div className="font-bold text-white">{u?.nama_lengkap || `Peserta #${pu.id_user}`}</div>
-                                  <div className="text-[10px] text-slate-400">Tingkat {u?.tingkat || inferTingkatFromKelas(u?.kelas)} • {u?.kelas || '-'} • NISN: {u?.username_nisn || pu.id_user}</div>
+                                  <div className="font-bold text-white">{actionItem.nama_lengkap}</div>
+                                  <div className="text-[10px] text-slate-400">Tingkat {u?.tingkat || inferTingkatFromKelas(u?.kelas)} • {actionItem.kelas} • NISN: {actionItem.username_nisn}</div>
                                 </td>
                                 <td className="p-3.5">
                                   {pu.status_pengerjaan === 'selesai' && <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-bold">Selesai</span>}
@@ -3751,56 +3829,26 @@
                                 <td className="p-3.5">
                                   <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">{pu.jumlah_pelanggaran} / 3 Peringatan</span>
                                 </td>
-                                <td className="p-3.5 pr-5 text-right space-x-1.5">
-                                  <button
-                                    onClick={() => {
-                                      const updatedItem = { ...pu, status_pengerjaan: 'sedang_mengerjakan', waktu_selesai: null, jumlah_pelanggaran: 0, log_pelanggaran: [] };
-                                      setPesertaUjian(prev =>
-                                        prev.some(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian))
-                                          ? prev.map(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian) ? updatedItem : p)
-                                          : [...prev, updatedItem]
-                                      );
-                                      syncToSheets({
-                                        action: 'resetParticipantSession',
-                                        id_peserta_ujian: pu.id_peserta_ujian,
-                                        id_sesi: pu.id_sesi,
-                                        id_user: pu.id_user
-                                      });
-                                      triggerToast('Sesi Direset', `Sesi & catatan pelanggaran ${u?.nama_lengkap || 'peserta'} berhasil direset.`);
-                                    }}
-                                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold"
-                                  >
-                                    Reset Sesi
-                                  </button>
-                                  <button
-                                    disabled={pu.status_pengerjaan === 'selesai' || pu.status_pengerjaan === 'dihentikan_sistem'}
-                                    onClick={() => {
-                                      const nowWib = indonesianClockStr;
-                                      const updatedItem = {
-                                        ...pu,
-                                        status_pengerjaan: 'dihentikan_sistem',
-                                        waktu_selesai: nowWib,
-                                        sisa_detik: 0
-                                      };
-                                      setPesertaUjian(prev =>
-                                        prev.some(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian))
-                                          ? prev.map(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian) ? updatedItem : p)
-                                          : [...prev, updatedItem]
-                                      );
-                                      syncToSheets({
-                                        action: 'forceSubmitParticipant',
-                                        id_peserta_ujian: pu.id_peserta_ujian,
-                                        id_sesi: pu.id_sesi,
-                                        id_user: pu.id_user,
-                                        waktu_selesai: nowWib,
-                                        status_akhir: 'dihentikan_sistem'
-                                      });
-                                      triggerToast('Force Submit Dieksekusi', `Ujian ${u?.nama_lengkap || 'peserta'} telah dihentikan paksa.`, 'warning');
-                                    }}
-                                    className="px-2.5 py-1 bg-red-900/50 hover:bg-red-700 disabled:opacity-40 text-red-200 rounded-lg font-bold"
-                                  >
-                                    Force Submit
-                                  </button>
+                                <td className="p-3.5 pr-5 text-right">
+                                  <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => setMpuActionModal({ type: 'RESET_UJIAN', item: actionItem })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/40 font-extrabold text-xs transition"
+                                      title="Reset Ujian & hapus seluruh data log serta nilai dari ujian sebelumnya agar peserta bisa mengulang"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" /> Reset Ujian
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={pu.status_pengerjaan === 'selesai'}
+                                      onClick={() => setMpuActionModal({ type: 'FORCE_SUBMIT', item: actionItem })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 disabled:opacity-40 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-extrabold text-xs transition"
+                                      title="Force Submit apabila peserta terkendala tidak bisa submit ujian"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Force Submit
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -4937,75 +4985,6 @@
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* MODAL KONFIRMASI RESET UJIAN / FORCE SUBMIT PADA MENU MANAJEMEN PESERTA UJIAN */}
-              {mpuActionModal && (
-                <SimpleModal
-                  title={mpuActionModal.type === 'RESET_UJIAN' ? 'Konfirmasi Reset Ujian Peserta (Ulang dari Awal)' : 'Konfirmasi Force Submit Ujian Peserta'}
-                  onClose={() => setMpuActionModal(null)}
-                  maxWidth="max-w-lg"
-                >
-                  <div className="space-y-4 text-xs">
-                    {mpuActionModal.type === 'RESET_UJIAN' ? (
-                      <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/40 space-y-2">
-                        <div className="flex items-center gap-2 font-black text-sky-300 text-sm">
-                          <RefreshCw className="w-5 h-5 text-sky-400 shrink-0" />
-                          <span>Reset Ujian Agar Peserta Bisa Mengulang Kembali</span>
-                        </div>
-                        <p className="text-slate-200 leading-relaxed">
-                          Anda akan me-reset status ujian untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
-                        </p>
-                        <ul className="list-disc pl-5 text-[11px] text-sky-200/90 space-y-1 pt-1">
-                          <li>Status ujian yang sudah <strong>Selesai / Kehabisan Waktu / Dihentikan</strong> akan dikembalikan ke <strong>Belum Mulai</strong>.</li>
-                          <li>Durasi waktu hitung mundur akan dikembalikan penuh (<strong>{mpuActionModal.item.sesi?.durasi_menit || 60} Menit</strong>).</li>
-                          <li>Kunci perangkat (Single-Device Lock) dan catatan pelanggaran akan dibersihkan sehingga peserta dapat langsung menekan tombol <strong>"Mulai Kerjakan Sekarang"</strong> di HP/perangkatnya.</li>
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-2">
-                        <div className="flex items-center gap-2 font-black text-amber-300 text-sm">
-                          <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
-                          <span>Force Submit (Bantu Kumpulkan Ujian Peserta)</span>
-                        </div>
-                        <p className="text-slate-200 leading-relaxed">
-                          Anda akan mengeksekusi <strong>Force Submit</strong> untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
-                        </p>
-                        <ul className="list-disc pl-5 text-[11px] text-amber-200/90 space-y-1 pt-1">
-                          <li>Seluruh jawaban peserta yang telah terekam melalui Auto-Save akan langsung dikunci dan disahkan menjadi berstatus <strong>Selesai</strong>.</li>
-                          <li>Nilai Pilihan Ganda dan lembar jawaban Uraian peserta langsung masuk ke menu <strong>Koreksi & e-Rapor</strong>.</li>
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setMpuActionModal(null)}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
-                      >
-                        Batal
-                      </button>
-                      {mpuActionModal.type === 'RESET_UJIAN' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleResetUjianPeserta(mpuActionModal.item)}
-                          className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-sky-500/20"
-                        >
-                          <RefreshCw className="w-4 h-4" /> Ya, Reset Ujian Peserta
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleForceSubmitPeserta(mpuActionModal.item)}
-                          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
-                        >
-                          <CheckCircle2 className="w-4 h-4" /> Ya, Eksekusi Force Submit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </SimpleModal>
               )}
 
               {/* 9. KOREKSI & E-RAPOR */}
@@ -8023,6 +8002,9 @@
                               <div className="px-2.5 py-1 rounded bg-white border border-slate-300">
                                 Peserta: <strong className="text-slate-900">{grp.count} Siswa</strong>
                               </div>
+                              <div className="px-2.5 py-1 rounded bg-indigo-50 border border-indigo-300 text-indigo-900">
+                                Soal Sesi: <strong>{grp.totalSoalSesi} Soal ({grp.limitPG} PG + {grp.limitUraian} Uraian)</strong>
+                              </div>
                               <div className="px-2.5 py-1 rounded bg-sky-50 border border-sky-300 text-sky-900">
                                 Rata-rata Kelas: <strong>{grp.avg}</strong>
                               </div>
@@ -8044,7 +8026,7 @@
                                 <th className="border border-slate-400 p-2 text-center">NISN</th>
                                 <th className="border border-slate-400 p-2 text-center">Jurusan</th>
                                 <th className="border border-slate-400 p-2 text-center">Kelas</th>
-                                <th className="border border-slate-400 p-2 text-center">Jml Soal Terjawab</th>
+                                <th className="border border-slate-400 p-2 text-center">Jml Soal Terjawab / Sesi</th>
                                 <th className="border border-slate-400 p-2 text-center">Benar PG</th>
                                 <th className="border border-slate-400 p-2 text-center">Salah PG</th>
                                 <th className="border border-slate-400 p-2 text-center">Total Skor PG</th>
@@ -8060,7 +8042,9 @@
                                   <td className="border border-slate-300 p-1.5 text-center font-mono text-slate-700">{m.user?.username_nisn || '-'}</td>
                                   <td className="border border-slate-300 p-1.5 text-center font-semibold">{m.jurusan}</td>
                                   <td className="border border-slate-300 p-1.5 text-center font-semibold">{m.kelas}</td>
-                                  <td className="border border-slate-300 p-1.5 text-center font-mono">{m.jmlTerjawab} / {m.totalSoalSesi}</td>
+                                  <td className="border border-slate-300 p-1.5 text-center font-mono font-bold">
+                                    {m.jmlTerjawab} / {m.totalSoalSesi} Soal
+                                  </td>
                                   <td className="border border-slate-300 p-1.5 text-center font-mono font-bold text-emerald-700">{m.jmlBenarPG}</td>
                                   <td className="border border-slate-300 p-1.5 text-center font-mono font-bold text-rose-700">{m.jmlSalahPG}</td>
                                   <td className="border border-slate-300 p-1.5 text-center font-mono font-bold text-sky-800">{m.skorPG}</td>
@@ -8098,6 +8082,75 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </SimpleModal>
+          )}
+
+          {/* MODAL GLOBAL KONFIRMASI RESET UJIAN / FORCE SUBMIT (DIGUNAKAN OLEH COMMAND CENTER & MANAJEMEN PESERTA UJIAN) */}
+          {mpuActionModal && (
+            <SimpleModal
+              title={mpuActionModal.type === 'RESET_UJIAN' ? 'Konfirmasi Reset Ujian Peserta & Hapus Log' : 'Konfirmasi Force Submit Ujian Peserta'}
+              onClose={() => setMpuActionModal(null)}
+              maxWidth="max-w-lg"
+            >
+              <div className="space-y-4 text-xs">
+                {mpuActionModal.type === 'RESET_UJIAN' ? (
+                  <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/40 space-y-2">
+                    <div className="flex items-center gap-2 font-black text-sky-300 text-sm">
+                      <RefreshCw className="w-5 h-5 text-sky-400 shrink-0" />
+                      <span>Reset Ujian & Hapus Seluruh Data Log Sebelumnya</span>
+                    </div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Anda akan me-reset ujian untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
+                    </p>
+                    <ul className="list-disc pl-5 text-[11px] text-sky-200/90 space-y-1 pt-1">
+                      <li>Seluruh <strong>data log pelanggaran, rekaman jawaban sebelumnya, dan data nilai pada Rekap Nilai</strong> untuk peserta ini akan <strong>dihapus bersih</strong>.</li>
+                      <li>Status peserta dikembalikan ke <strong>Belum Mulai</strong> dengan durasi waktu penuh (<strong>{mpuActionModal.item.sesi?.durasi_menit || 60} Menit</strong>).</li>
+                      <li>Peserta dapat langsung login dan menekan tombol <strong>"Mulai Kerjakan Sekarang"</strong> untuk mengulang ujian dari awal.</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-2">
+                    <div className="flex items-center gap-2 font-black text-amber-300 text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
+                      <span>Force Submit (Bantu Kumpulkan Ujian Peserta)</span>
+                    </div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Anda akan mengeksekusi <strong>Force Submit</strong> untuk peserta <strong className="text-white">{mpuActionModal.item.nama_lengkap}</strong> ({mpuActionModal.item.kelas} • NISN: {mpuActionModal.item.username_nisn}) pada mata pelajaran <strong className="text-amber-300">{mpuActionModal.item.mata_pelajaran}</strong>.
+                    </p>
+                    <ul className="list-disc pl-5 text-[11px] text-amber-200/90 space-y-1 pt-1">
+                      <li>Seluruh jawaban peserta yang telah terekam melalui Auto-Save akan langsung dikunci dan disahkan menjadi berstatus <strong>Selesai</strong>.</li>
+                      <li>Nilai Pilihan Ganda dan lembar jawaban Uraian peserta langsung masuk ke menu <strong>Koreksi & e-Rapor</strong>.</li>
+                    </ul>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setMpuActionModal(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                  >
+                    Batal
+                  </button>
+                  {mpuActionModal.type === 'RESET_UJIAN' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleResetUjianPeserta(mpuActionModal.item)}
+                      className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-sky-500/20"
+                    >
+                      <RefreshCw className="w-4 h-4" /> Ya, Reset Ujian & Hapus Log
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleForceSubmitPeserta(mpuActionModal.item)}
+                      className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Ya, Eksekusi Force Submit
+                    </button>
+                  )}
                 </div>
               </div>
             </SimpleModal>
