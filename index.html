@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal Login SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
+  <link rel="icon" type="image/png" href="logo_skarida.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -18,11 +19,6 @@
 
   <script type="text/babel">
     const { useState, useEffect } = React;
-
-    // =========================================================================
-    // URL GOOGLE APPS SCRIPT AKTIF (TERHUBUNG KE GOOGLE SHEETS)
-    // =========================================================================
-    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_tzJh10HSv1eknwY01ChjD3g-Yj_xuONQvGNvr85koAepLgWuKJkoi8P0uha3YIxcMQ/exec";
 
     const safeGetStorage = (key, fallback = '') => {
       try {
@@ -39,9 +35,10 @@
       } catch (_) {}
     };
 
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_tzJh10HSv1eknwY01ChjD3g-Yj_xuONQvGNvr85koAepLgWuKJkoi8P0uha3YIxcMQ/exec";
+
     const LUCIDE_ICON_PATHS = {
       ShieldAlert: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-      ShieldCheck: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
       Lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
       AlertTriangle: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
       CheckCircle2: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
@@ -52,13 +49,14 @@
       Eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
       EyeOff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
       Wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>',
+      ShieldCheck: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
       GraduationCap: '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
-      ArrowRight: '<line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+      ArrowRight: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
       LogOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
       MonitorCheck: '<path d="m9 10 2 2 4-4"/><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M12 17v4"/><path d="M8 21h8"/>',
       Database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>',
-      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-      ExternalLink: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>'
+      ExternalLink: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>',
+      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
     };
 
     const LucideIcons = new Proxy({}, {
@@ -79,55 +77,135 @@
         );
       }
     });
+
     const {
       ShieldAlert, Lock, AlertTriangle, CheckCircle2, Clock, Smartphone,
       UserCheck, KeyRound, Eye, EyeOff, Wifi, ShieldCheck, GraduationCap,
-      ArrowRight, LogOut, MonitorCheck, Database, X, ExternalLink
+      ArrowRight, LogOut, MonitorCheck, Database, ExternalLink, X
     } = LucideIcons;
 
     // =========================================================================
-    // LOGO & FAVICON SMK NEGERI 2 TEGALSARI
+    // LOGO & FAVICON SMK NEGERI 2 TEGALSARI (logo_skarida.png)
     // =========================================================================
-    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+    const LOGO_PETAL_ANGLES = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
+    const LOGO_GEAR_ANGLES = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
+
+    const LOGO_SVG_RAW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
       <defs>
-        <path id="topArc" d="M 52,120 A 68,68 0 1,1 188,120" />
-        <path id="botArc" d="M 192,120 A 72,72 0 1,1 48,120" />
+        <path id="topArc" d="M 75.5,150 A 74.5,74.5 0 1,1 224.5,150" />
+        <path id="botArc" d="M 64.5,150 A 85.5,85.5 0 0,0 235.5,150" />
+        <path id="ribbonArc" d="M 111,191 Q 150,202 189,191" />
+        <clipPath id="globeClip">
+          <circle cx="150" cy="145" r="19.5" />
+        </clipPath>
       </defs>
-      <g transform="translate(120,120)">
-        <path d="M0,-116 C18,-98 30,-95 36,-110 C45,-88 58,-82 68,-95 C68,-72 78,-62 95,-68 C82,-48 88,-35 110,-36 C95,-20 98,-8 116,0 C98,8 95,20 110,36 C88,35 82,48 95,68 C78,62 68,72 68,95 C58,82 45,88 36,110 C30,95 18,98 0,116 C-18,98 -30,95 -36,110 C-45,88 -58,82 -68,95 C-68,72 -78,62 -95,68 C-82,48 -88,35 -110,36 C-95,20 -98,8 -116,0 C-98,-8 -95,-20 -110,-36 C-88,-35 -82,-48 -95,-68 C-78,-62 -68,-72 -68,-95 C-58,-82 -45,-88 -36,-110 C-30,-95 -18,-98 0,-116 Z" fill="#1a1464" stroke="#1a1464" stroke-width="4" stroke-linejoin="round"/>
-        <path d="M0,-105 C14,-90 26,-88 33,-98 C40,-80 52,-75 62,-85 C62,-66 70,-58 85,-62 C75,-45 80,-33 98,-33 C88,-18 90,-7 105,0 C90,7 88,18 98,33 C80,33 75,45 85,62 C70,58 62,66 62,85 C52,75 40,80 33,98 C26,88 14,90 0,105 C-14,90 -26,88 -33,98 C-40,80 -52,75 -62,85 C-62,66 -70,58 -85,62 C-75,45 -80,33 -98,33 C-88,18 -90,7 -105,0 C-90,-7 -88,-18 -98,-33 C-80,-33 -75,-45 -85,-62 C-70,-58 -62,-66 -62,-85 C-52,-75 -40,-80 -33,-98 C-26,-88 -14,-90 0,-105 Z" fill="#0095d9"/>
-      </g>
-      <circle cx="120" cy="120" r="82" fill="#0095d9" stroke="#1a1464" stroke-width="5"/>
-      <circle cx="120" cy="120" r="56" fill="#1a1464" stroke="#0095d9" stroke-width="2"/>
-      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="13.5" letter-spacing="0.8">
+      ${LOGO_PETAL_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 150)">
+          <path d="M 111,40 C 120,16 141,14 150,3 C 159,14 180,16 189,40 L 178,68 L 122,68 Z" fill="#181265" stroke="#181265" stroke-width="2" stroke-linejoin="round"/>
+        </g>
+        <g transform="rotate(${a + 18} 150 150)">
+          <path d="M 128,35 Q 150,43 172,35 L 168,68 L 132,68 Z" fill="#181265"/>
+        </g>
+      `).join('')}
+      ${LOGO_PETAL_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 150)">
+          <path d="M 125,55 C 120,44 123,33 131,26 C 139,19 146,17 150,11 C 154,17 161,19 169,26 C 177,33 180,44 175,55 Z" fill="#0093dd"/>
+        </g>
+        <g transform="rotate(${a + 18} 150 150)">
+          <path d="M 145,42 C 147,47 148,51 147,55 C 144,52 143,47 145,42 Z" fill="#0093dd"/>
+          <path d="M 155,42 C 153,47 152,51 153,55 C 156,52 157,47 155,42 Z" fill="#0093dd"/>
+        </g>
+      `).join('')}
+      <circle cx="150" cy="150" r="99.5" fill="#181265"/>
+      <circle cx="150" cy="150" r="93.5" fill="#0093dd"/>
+      <circle cx="150" cy="150" r="65.5" fill="#181265"/>
+      <text fill="#ffffff" font-family="'Arial Narrow', Impact, Arial, sans-serif" font-weight="900" font-size="16.5" letter-spacing="0.6">
         <textPath href="#topArc" startOffset="50%" text-anchor="middle">SMK NEGERI 2 TEGALSARI</textPath>
       </text>
-      <text fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="12.5" letter-spacing="0.6">
+      <text fill="#ffffff" font-family="'Arial Narrow', Impact, Arial, sans-serif" font-weight="900" font-size="15.8" letter-spacing="0.7">
         <textPath href="#botArc" startOffset="50%" text-anchor="middle">TEGALSARI - BANYUWANGI</textPath>
       </text>
-      <polygon points="120,69 123,77 131,77 125,82 127,90 120,85 113,90 115,82 109,77 117,77" fill="#ffde00"/>
-      <path d="M92,145 C78,128 80,98 98,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
-      <path d="M148,145 C162,128 160,98 142,84" fill="none" stroke="#ffde00" stroke-width="4" stroke-linecap="round"/>
-      <circle cx="120" cy="120" r="26" fill="#0095d9" stroke="#ffde00" stroke-width="2" stroke-dasharray="6 3"/>
-      <circle cx="120" cy="120" r="20" fill="#ffde00" stroke="#1a1464" stroke-width="1.5"/>
-      <ellipse cx="120" cy="120" rx="18" ry="9" fill="none" stroke="#1a1464" stroke-width="1.2"/>
-      <ellipse cx="120" cy="120" rx="9" ry="18" fill="none" stroke="#1a1464" stroke-width="1.2"/>
-      <line x1="102" y1="120" x2="138" y2="120" stroke="#1a1464" stroke-width="1.2"/>
-      <line x1="120" y1="102" x2="120" y2="138" stroke="#1a1464" stroke-width="1.2"/>
-      <path d="M109,124 L120,127 L131,124 L131,115 L120,118 L109,115 Z" fill="#ffffff" stroke="#e11d48" stroke-width="1.5"/>
-      <path d="M86,152 Q120,162 154,152 L150,163 Q120,172 90,163 Z" fill="#0095d9" stroke="#ffffff" stroke-width="1"/>
+      <polygon points="150,87 153.3,94.8 161.8,95.2 155.2,100.5 157.5,108.6 150,103.8 142.5,108.6 144.8,100.5 138.2,95.2 146.7,94.8" fill="#ffd600" stroke="#181265" stroke-width="0.7"/>
+      <path d="M 125,180 C 97,162 98,120 126,102" fill="none" stroke="#ffd600" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 175,180 C 203,162 202,120 174,102" fill="none" stroke="#ffd600" stroke-width="2" stroke-linecap="round"/>
+      <g fill="#ffd600" stroke="#181265" stroke-width="0.5">
+        <ellipse cx="116" cy="172" rx="5.5" ry="2.4" transform="rotate(35 116 172)"/>
+        <ellipse cx="122" cy="168" rx="5.2" ry="2.2" transform="rotate(-25 122 168)"/>
+        <ellipse cx="108" cy="162" rx="5.8" ry="2.5" transform="rotate(25 108 162)"/>
+        <ellipse cx="115" cy="158" rx="5.2" ry="2.2" transform="rotate(-35 115 158)"/>
+        <ellipse cx="103" cy="150" rx="5.8" ry="2.5" transform="rotate(15 103 150)"/>
+        <ellipse cx="111" cy="147" rx="5.2" ry="2.2" transform="rotate(-45 111 147)"/>
+        <ellipse cx="102" cy="138" rx="5.8" ry="2.5" transform="rotate(0 102 138)"/>
+        <ellipse cx="110" cy="136" rx="5.2" ry="2.2" transform="rotate(-55 110 136)"/>
+        <ellipse cx="105" cy="126" rx="5.8" ry="2.4" transform="rotate(-15 105 126)"/>
+        <ellipse cx="113" cy="125" rx="5.2" ry="2.2" transform="rotate(-65 113 125)"/>
+        <ellipse cx="111" cy="115" rx="5.5" ry="2.3" transform="rotate(-28 111 115)"/>
+        <ellipse cx="119" cy="116" rx="5" ry="2.1" transform="rotate(-75 119 116)"/>
+        <ellipse cx="119" cy="106" rx="5.2" ry="2.2" transform="rotate(-40 119 106)"/>
+        <ellipse cx="126" cy="108" rx="4.8" ry="2" transform="rotate(-80 126 108)"/>
+        <ellipse cx="184" cy="172" rx="5.5" ry="2.4" transform="rotate(-35 184 172)"/>
+        <ellipse cx="178" cy="168" rx="5.2" ry="2.2" transform="rotate(25 178 168)"/>
+        <ellipse cx="192" cy="162" rx="5.8" ry="2.5" transform="rotate(-25 192 162)"/>
+        <ellipse cx="185" cy="158" rx="5.2" ry="2.2" transform="rotate(35 185 158)"/>
+        <ellipse cx="197" cy="150" rx="5.8" ry="2.5" transform="rotate(-15 197 150)"/>
+        <ellipse cx="189" cy="147" rx="5.2" ry="2.2" transform="rotate(45 189 147)"/>
+        <ellipse cx="198" cy="138" rx="5.8" ry="2.5" transform="rotate(0 198 138)"/>
+        <ellipse cx="190" cy="136" rx="5.2" ry="2.2" transform="rotate(55 190 136)"/>
+        <ellipse cx="195" cy="126" rx="5.8" ry="2.4" transform="rotate(15 195 126)"/>
+        <ellipse cx="187" cy="125" rx="5.2" ry="2.2" transform="rotate(65 187 125)"/>
+        <ellipse cx="189" cy="115" rx="5.5" ry="2.3" transform="rotate(28 189 115)"/>
+        <ellipse cx="181" cy="116" rx="5" ry="2.1" transform="rotate(75 181 116)"/>
+        <ellipse cx="181" cy="106" rx="5.2" ry="2.2" transform="rotate(40 181 106)"/>
+        <ellipse cx="174" cy="108" rx="4.8" ry="2" transform="rotate(80 174 108)"/>
+      </g>
+      ${LOGO_GEAR_ANGLES.map(a => `
+        <g transform="rotate(${a} 150 145)">
+          <rect x="146.8" y="111.5" width="6.4" height="8" rx="1" fill="#0093dd"/>
+        </g>
+      `).join('')}
+      <circle cx="150" cy="145" r="28" fill="#0093dd"/>
+      <circle cx="150" cy="145" r="22.5" fill="#181265" stroke="#ffffff" stroke-width="1.4"/>
+      <circle cx="150" cy="145" r="20.2" fill="#181265" stroke="#ffd600" stroke-width="1.8"/>
+      <g clip-path="url(#globeClip)">
+        <ellipse cx="150" cy="145" rx="19" ry="7.5" fill="none" stroke="#ffd600" stroke-width="1.2"/>
+        <ellipse cx="150" cy="145" rx="19" ry="14" fill="none" stroke="#ffd600" stroke-width="1.1"/>
+        <ellipse cx="150" cy="145" rx="7.5" ry="19" fill="none" stroke="#ffd600" stroke-width="1.2"/>
+        <ellipse cx="150" cy="145" rx="14" ry="19" fill="none" stroke="#ffd600" stroke-width="1.1"/>
+        <line x1="130" y1="145" x2="170" y2="145" stroke="#ffd600" stroke-width="1.2"/>
+        <line x1="150" y1="125" x2="150" y2="165" stroke="#ffd600" stroke-width="1.2"/>
+        <path d="M 131,150 Q 140,155 148,154 L 147,162 Q 137,161 131,154 Z" fill="#e52420"/>
+        <path d="M 169,150 Q 160,155 152,154 L 153,162 Q 163,161 169,154 Z" fill="#e52420"/>
+        <path d="M 134,155 Q 142,160 148,159 L 147,164 Q 139,163 134,158 Z" fill="#c81e1e"/>
+        <path d="M 166,155 Q 158,160 152,159 L 153,164 Q 161,163 166,158 Z" fill="#c81e1e"/>
+        <path d="M 146,155 L 154,155 L 152,165 L 148,165 Z" fill="#181265"/>
+      </g>
+      <path d="M 135.5,150 L 150,153.5 L 164.5,150 L 164.5,138.5 L 150,142 L 135.5,138.5 Z" fill="#e52420"/>
+      <path d="M 137,148.5 L 150,151.8 L 163,148.5 L 163,137.5 L 150,140.8 L 137,137.5 Z" fill="#ffffff" stroke="#e52420" stroke-width="0.9"/>
+      <line x1="150" y1="140.8" x2="150" y2="151.8" stroke="#181265" stroke-width="1.3"/>
+      <line x1="139.5" y1="141.5" x2="147.5" y2="143.2" stroke="#181265" stroke-width="0.8"/>
+      <line x1="139.5" y1="144.8" x2="147.5" y2="146.5" stroke="#181265" stroke-width="0.8"/>
+      <line x1="160.5" y1="141.5" x2="152.5" y2="143.2" stroke="#181265" stroke-width="0.8"/>
+      <line x1="160.5" y1="144.8" x2="152.5" y2="146.5" stroke="#181265" stroke-width="0.8"/>
+      <path d="M 101,182 L 114,178 L 114,191 L 99,193 L 105,187 Z" fill="#0093dd" stroke="#181265" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M 199,182 L 186,178 L 186,191 L 201,193 L 195,187 Z" fill="#0093dd" stroke="#181265" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M 109,180 Q 150,192 191,180 L 188,194 Q 150,206 112,194 Z" fill="#0093dd" stroke="#181265" stroke-width="1.5" stroke-linejoin="round"/>
+      <text fill="#ffffff" font-family="'Arial Narrow', Arial, sans-serif" font-weight="900" font-size="8.2" letter-spacing="0.45">
+        <textPath href="#ribbonArc" startOffset="50%" text-anchor="middle">MABADI'UL IHSAN</textPath>
+      </text>
     </svg>`;
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
     function SkaridaLogo({ className = 'w-12 h-12' }) {
-      const [imgErr, setImgErr] = useState(false);
       return (
         <img
-          src={imgErr ? LOGO_DATA_URI : 'big_logo.png'}
-          onError={() => setImgErr(true)}
+          src="logo_skarida.png"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = LOGO_DATA_URI;
+          }}
           alt="Logo SMK Negeri 2 Tegalsari"
-          className={`${className} object-contain shrink-0 drop-shadow-md select-none`}
+          className={`${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`}
         />
       );
     }
@@ -159,7 +237,7 @@
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = LOGO_DATA_URI;
+        link.href = 'logo_skarida.png';
       }, []);
 
       useEffect(() => {
