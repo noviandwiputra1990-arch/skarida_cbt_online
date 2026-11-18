@@ -116,6 +116,18 @@
       return `${h}:${m}:${s}`;
     };
 
+    // Algoritma Fisher-Yates untuk mengacak urutan butir soal & mengacak opsi jawaban PG
+    const shuffleArray = (arr) => {
+      const copy = [...(arr || [])];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
+    };
+
     const getWaktuIndonesiaString = () => {
       try {
         const formatter = new Intl.DateTimeFormat('id-ID', {
@@ -401,6 +413,11 @@
                 setSesiListState(d.sesi_ujian.map(s => {
                   let parsedIds = [];
                   try { parsedIds = JSON.parse(s.peserta_ids_json || '[]'); } catch (_) {}
+                  const parseBool = (val, def = true) => {
+                    if (val === undefined || val === null || val === '') return def;
+                    if (typeof val === 'boolean') return val;
+                    return String(val).toUpperCase() === 'TRUE' || String(val) === '1';
+                  };
                   return {
                     ...s,
                     mata_pelajaran: String(pktMap[s.id_paket]?.mata_pelajaran || s.nama_sesi_spesifik || 'Mata Pelajaran Ujian'),
@@ -410,8 +427,10 @@
                     waktu_tutup: String(s.waktu_tutup || ''),
                     durasi_menit: Number(s.durasi_menit) || 60,
                     minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
+                    is_acak_soal: parseBool(s.is_acak_soal, true),
+                    is_proctoring_active: parseBool(s.is_proctoring_active, true),
                     token: String(s.token || ''),
-                    require_token: String(s.require_token).toUpperCase() === 'TRUE' || s.require_token === true,
+                    require_token: parseBool(s.require_token, true),
                     peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
                   };
                 }));
@@ -458,8 +477,39 @@
         }
         const soalPaket = soalBankState.filter(q => String(q.id_paket) === String(selectedSesi.id_paket));
         const sourceQuestions = soalPaket.length > 0 ? soalPaket : soalBankState;
-        const pgQuestions = sourceQuestions.filter(q => q.tipe_soal === 'PG');
-        const uraianQuestions = sourceQuestions.filter(q => q.tipe_soal === 'Uraian');
+        const isRandomActive = selectedSesi.is_acak_soal !== false;
+
+        let pgQuestions = sourceQuestions.filter(q => q.tipe_soal === 'PG');
+        let uraianQuestions = sourceQuestions.filter(q => q.tipe_soal === 'Uraian');
+
+        // Jika Toggle "Acak Soal & Jawaban" ON, acak urutan butir soal sekaligus acak posisi opsi jawaban PG (A-E)
+        if (isRandomActive) {
+          pgQuestions = shuffleArray(pgQuestions).map(q => {
+            const jmlOpsi = Math.min(5, Math.max(3, Number(q.jumlah_opsi) || 4));
+            const optionBundles = Array.from({ length: jmlOpsi }).map((_, idx) => ({
+              origLetter: String.fromCharCode(65 + idx),
+              teks: q.opsi?.[idx] ?? '',
+              gambar: q.gambar_opsi?.[idx] ?? null,
+              preview: q.preview_gambar_opsi?.[idx] ?? ''
+            }));
+            const shuffledBundles = shuffleArray(optionBundles);
+            const origKey = String(q.kunci_jawaban || 'A').trim().toUpperCase();
+            const newKeyIndex = shuffledBundles.findIndex(b => b.origLetter === origKey);
+            const newDisplayKey = newKeyIndex >= 0 ? String.fromCharCode(65 + newKeyIndex) : origKey;
+
+            return {
+              ...q,
+              opsi: shuffledBundles.map(b => b.teks),
+              gambar_opsi: shuffledBundles.map(b => b.gambar),
+              preview_gambar_opsi: shuffledBundles.map(b => b.preview),
+              opsi_original_letters: shuffledBundles.map(b => b.origLetter),
+              kunci_jawaban_asli: origKey,
+              kunci_jawaban: newDisplayKey
+            };
+          });
+          uraianQuestions = shuffleArray(uraianQuestions);
+        }
+
         const ordered = [...pgQuestions, ...uraianQuestions].map((q, idx) => ({ ...q, nomor_urut: idx + 1 }));
 
         const nowStr = getWaktuIndonesiaString();
@@ -511,7 +561,13 @@
           if (q.tipe_soal === 'PG') {
             const picked = String(ans || '').trim().toUpperCase();
             if (picked) {
-              jawabanPgMap[q.id_soal] = picked;
+              const pickedIdx = picked.charCodeAt(0) - 65;
+              // Kembalikan ke kode huruf opsi asli di Bank Soal agar Preview Jawaban PG di Admin tetap akurat walau opsi diacak
+              const originalOptionLetter = (Array.isArray(q.opsi_original_letters) && q.opsi_original_letters[pickedIdx])
+                ? q.opsi_original_letters[pickedIdx]
+                : picked;
+              jawabanPgMap[q.id_soal] = originalOptionLetter;
+
               if (picked === String(q.kunci_jawaban || 'A').trim().toUpperCase()) {
                 jmlBenarPG += 1;
                 skorPG += Number(q.bobot_skor) || 2;
