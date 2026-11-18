@@ -1403,6 +1403,9 @@
       });
       const [showApiModal, setShowApiModal] = useState(false);
       const [isSyncing, setIsSyncing] = useState(false);
+      const [autoSyncSeconds, setAutoSyncSeconds] = useState(300); // 5 Menit = 300 Detik
+      const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(true);
+      const [lastSyncTimeStr, setLastSyncTimeStr] = useState('-');
 
       useEffect(() => {
         let link = document.querySelector("link[rel~='icon']");
@@ -1531,6 +1534,8 @@
 
           if (json && json.status === 'success' && json.data) {
             setDbConnStatus('connected');
+            setLastSyncTimeStr(getCurrentIndonesianClock(zonaWaktuIndonesia));
+            setAutoSyncSeconds(300);
             const d = json.data;
             if (Array.isArray(d.master_ujian)) {
               setMasterUjian(
@@ -1780,6 +1785,21 @@
       useEffect(() => {
         fetchAllFromSheets(true);
       }, [scriptUrl]);
+
+      // Auto-Sinkronisasi Database Google Sheets Setiap 5 Menit (300 Detik)
+      useEffect(() => {
+        if (!isAutoSyncEnabled) return;
+        const autoSyncTimer = setInterval(() => {
+          setAutoSyncSeconds(prev => {
+            if (prev <= 1) {
+              fetchAllFromSheets(true);
+              return 300;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(autoSyncTimer);
+      }, [isAutoSyncEnabled, scriptUrl, zonaWaktuIndonesia]);
 
       const [kelasFilterTingkat, setKelasFilterTingkat] = useState('ALL');
       const [kelasFilterJurusan, setKelasFilterJurusan] = useState('ALL');
@@ -3654,6 +3674,25 @@
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoSyncEnabled(!isAutoSyncEnabled)}
+                    className={`px-2 py-0.5 rounded font-extrabold text-[10px] transition ${
+                      isAutoSyncEnabled
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    }`}
+                    title="Klik untuk mengaktifkan / menonaktifkan Auto-Sync 5 Menit"
+                  >
+                    Auto-Sync 5m: {isAutoSyncEnabled ? formatMinutesSeconds(autoSyncSeconds) : 'OFF'}
+                  </button>
+                  {lastSyncTimeStr !== '-' && (
+                    <span className="hidden xl:inline text-[10px] text-slate-400 font-mono">
+                      ({lastSyncTimeStr})
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => fetchAllFromSheets(false)}
@@ -3664,7 +3703,7 @@
                       ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/40'
                       : 'bg-sky-500/15 text-sky-300 border-sky-500/30'
                   }`}
-                  title="Klik untuk memuat ulang seluruh data dari Google Sheets"
+                  title="Klik untuk memuat ulang seluruh data dari Google Sheets sekarang"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>
