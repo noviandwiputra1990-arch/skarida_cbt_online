@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
-  <link rel="icon" type="image/png" href="logo_skarida.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -15,7 +14,14 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; }
+    html, body, #root {
+      height: 100dvh;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
     .katex { font-size: 1.05em; }
     .rich-math-content b, .rich-math-content strong { font-weight: 800; color: #fff; }
     .rich-math-content i, .rich-math-content em { font-style: italic; }
@@ -25,7 +31,7 @@
 <body class="bg-slate-950 text-slate-200 antialiased">
   <div id="root"></div>
 
-  <script type="text/babel">
+  <script>
     const { useState, useEffect, useMemo, useRef } = React;
 
     const safeGetStorage = (key, fallback = '') => {
@@ -93,24 +99,28 @@
       Flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
       Maximize2: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
       Wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>',
-      ZoomIn: '<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/>'
+      ZoomIn: '<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/>',
+      Menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>'
     };
 
     const LucideIcons = new Proxy({}, {
       get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => {
         const rawSvg = LUCIDE_ICON_PATHS[prop] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/>';
-        return (
-          <svg
-            className={`inline-block shrink-0 ${className}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            dangerouslySetInnerHTML={{ __html: rawSvg }}
-            {...rest}
-          />
+        return React.createElement(
+          'svg',
+          Object.assign(
+            {
+              className: `inline-block shrink-0 ${className}`,
+              viewBox: '0 0 24 24',
+              fill: 'none',
+              stroke: 'currentColor',
+              strokeWidth: '2',
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+              dangerouslySetInnerHTML: { __html: rawSvg }
+            },
+            rest
+          )
         );
       }
     });
@@ -122,7 +132,7 @@
       Upload, ChevronRight, ChevronLeft, FileText, Image: ImageIcon, Edit3,
       Trash2, XCircle, BarChart3, PieChart, UserCircle2, Smartphone,
       ShieldCheck, Timer, Ban, X, Check, GraduationCap, Building2, Award,
-      Play, LogOut, LayoutGrid, Flag, Maximize2, Wifi, ZoomIn, Download, Database
+      Play, LogOut, LayoutGrid, Flag, Maximize2, Wifi, ZoomIn, Download, Database, Menu
     } = LucideIcons;
 
     const LOGO_PETAL_ANGLES = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
@@ -234,18 +244,28 @@
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
+    const isPreviewSandboxEnv = () => {
+      if (typeof window === 'undefined') return true;
+      const { protocol, hostname, pathname } = window.location;
+      if (protocol === 'blob:' || protocol === 'about:' || protocol === 'data:') return true;
+      if (!hostname || hostname.includes('usercontent.goog') || hostname.includes('webcontainer') || hostname.includes('codesandbox') || hostname.includes('stackblitz')) return true;
+      if (pathname && pathname.includes('srcdoc')) return true;
+      return false;
+    };
+
+    let cachedLogoResolvedSrc = isPreviewSandboxEnv() ? LOGO_DATA_URI : 'logo_skarida.png';
+
     function SkaridaLogo({ className = 'w-10 h-10' }) {
-      return (
-        <img
-          src="logo_skarida.png"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = LOGO_DATA_URI;
-          }}
-          alt="Logo SMK Negeri 2 Tegalsari"
-          className={`${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`}
-        />
-      );
+      const [logoSrc, setLogoSrc] = useState(cachedLogoResolvedSrc);
+      return React.createElement('img', {
+        src: logoSrc,
+        onError: () => {
+          cachedLogoResolvedSrc = LOGO_DATA_URI;
+          setLogoSrc(LOGO_DATA_URI);
+        },
+        alt: 'Logo SMK Negeri 2 Tegalsari',
+        className: `${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`
+      });
     }
 
     const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_tzJh10HSv1eknwY01ChjD3g-Yj_xuONQvGNvr85koAepLgWuKJkoi8P0uha3YIxcMQ/exec";
@@ -1033,16 +1053,16 @@
 
     function RichMathText({ text, className = '', placeholder = '' }) {
       if (!text && placeholder) {
-        return <span className={`text-slate-500 italic ${className}`}>{placeholder}</span>;
+        return React.createElement('span', { className: `text-slate-500 italic ${className}` }, placeholder);
       }
-      return (
-        <div
-          className={`rich-math-content whitespace-pre-line break-words leading-relaxed ${className}`}
-          dangerouslySetInnerHTML={{ __html: renderRichMathHtml(text) }}
-        />
-      );
+      return React.createElement('div', {
+        className: `rich-math-content whitespace-pre-line break-words leading-relaxed ${className}`,
+        dangerouslySetInnerHTML: { __html: renderRichMathHtml(text) }
+      });
     }
+  </script>
 
+  <script type="text/babel">
     function RichMathEditor({
       value,
       onChange,
@@ -1369,6 +1389,7 @@
 
     function AdminDashboardApp() {
       const [activeTab, setActiveTab] = useState('command-center');
+      const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
       const [toast, setToast] = useState(null);
       const [serverSeconds, setServerSeconds] = useState(4125);
       const [zonaWaktuIndonesia, setZonaWaktuIndonesia] = useState(() => safeGetStorage('skarida_zona_waktu', 'WIB'));
@@ -1390,7 +1411,7 @@
           link.rel = 'icon';
           document.head.appendChild(link);
         }
-        link.href = 'logo_skarida.png';
+        link.href = cachedLogoResolvedSrc;
       }, []);
 
       useEffect(() => {
@@ -1680,7 +1701,7 @@
                     require_token: parseBool(s.require_token, true),
                     token: String(s.token || '').trim(),
                     limit_soal_pg: hasLimitPG ? Math.max(0, Number(s.limit_soal_pg)) : 25,
-                    limit_soal_uraian: hasLimitUraian ? Math.max(0, Number(s.limit_soal_uraian)) : 5,
+                    limit_soal_uraian: hasLimitUraian ? Math.max(0, Number(s.limit_soal_uraian)) : 0,
                     peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
                   };
                 })
@@ -1772,6 +1793,8 @@
       const [ccFilterJurusan, setCcFilterJurusan] = useState('ALL');
       // Secara default menampilkan data pada sesi yang sedang berjalan ('ACTIVE_RUNNING')
       const [ccFilterSesi, setCcFilterSesi] = useState('ACTIVE_RUNNING');
+      const [ccPageSize, setCcPageSize] = useState(10);
+      const [ccCurrentPage, setCcCurrentPage] = useState(1);
 
       const [akunFilterTingkat, setAkunFilterTingkat] = useState('ALL');
       const [akunFilterJurusan, setAkunFilterJurusan] = useState('ALL');
@@ -1779,6 +1802,8 @@
       const [akunFilterAgama, setAkunFilterAgama] = useState('ALL');
       const [akunSearch, setAkunSearch] = useState('');
       const [akunSortBy, setAkunSortBy] = useState('nama_asc');
+      const [akunPageSize, setAkunPageSize] = useState(10);
+      const [akunCurrentPage, setAkunCurrentPage] = useState(1);
 
       const [soalFilterMapel, setSoalFilterMapel] = useState('ALL');
       const [soalFilterTingkat, setSoalFilterTingkat] = useState('ALL');
@@ -1993,6 +2018,38 @@
         });
       }, [pesertaUjian, users, sesiUjian, paketSoal, ccFilterMapel, ccFilterTingkat, ccFilterJurusan, ccFilterSesi, runningSessionIds]);
 
+      // Reset halaman Live Proctoring ke 1 saat filter atau ukuran halaman berubah
+      useEffect(() => {
+        setCcCurrentPage(1);
+      }, [ccFilterMapel, ccFilterTingkat, ccFilterJurusan, ccFilterSesi, ccPageSize]);
+
+      const ccPagination = useMemo(() => {
+        const totalItems = filteredCommandPeserta.length;
+        if (ccPageSize === 'ALL') {
+          return {
+            items: filteredCommandPeserta,
+            totalItems,
+            totalPages: 1,
+            currentPage: 1,
+            startIndex: 0,
+            endIndex: totalItems
+          };
+        }
+        const size = Number(ccPageSize) || 10;
+        const totalPages = Math.max(1, Math.ceil(totalItems / size));
+        const safePage = Math.min(Math.max(1, ccCurrentPage), totalPages);
+        const startIndex = (safePage - 1) * size;
+        const endIndex = Math.min(startIndex + size, totalItems);
+        return {
+          items: filteredCommandPeserta.slice(startIndex, endIndex),
+          totalItems,
+          totalPages,
+          currentPage: safePage,
+          startIndex,
+          endIndex
+        };
+      }, [filteredCommandPeserta, ccPageSize, ccCurrentPage]);
+
       const ccStats = useMemo(() => {
         // Hitung total target peserta dari sesi-sesi yang cocok dengan filter Command Center
         const matchingSessions = sesiUjian.filter(s => {
@@ -2060,14 +2117,20 @@
         finishedParticipants.forEach((pu) => {
           const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
           const soalPaket = masterSoal.filter(q => String(q.id_paket) === String(sesi?.id_paket));
-          const questionsToEvaluate = soalPaket.length > 0 ? soalPaket : masterSoal;
+          const allPaketQuestions = soalPaket.length > 0 ? soalPaket : masterSoal;
+          const savedPgMap = pu.jawaban_pg_siswa || {};
+          const presentedPgIds = Object.keys(savedPgMap);
+          const hasExplicitPgMap = presentedPgIds.length > 0;
+
+          // Evaluasi hanya butir soal yang benar-benar disajikan kepada peserta pada sesi tersebut
+          const questionsToEvaluate = hasExplicitPgMap
+            ? allPaketQuestions.filter(q => q.tipe_soal !== 'PG' || Object.prototype.hasOwnProperty.call(savedPgMap, q.id_soal))
+            : allPaketQuestions;
 
           const totalBobotPGPaket = questionsToEvaluate
             .filter(q => q.tipe_soal === 'PG')
             .reduce((acc, q) => acc + (Number(q.bobot_skor) || 2), 0);
 
-          const savedPgMap = pu.jawaban_pg_siswa || {};
-          const hasExplicitPgMap = Object.keys(savedPgMap).length > 0;
           const fallbackPgRatio = totalBobotPGPaket > 0
             ? Math.min(1, Math.max(0, (Number(pu.skor_pg) || 0) / totalBobotPGPaket))
             : Math.min(1, Math.max(0, (Number(pu.skor_pg) || 0) / 100));
@@ -2147,12 +2210,12 @@
         ];
 
         let totalLogs = 0;
-        letviolatingStudents = 0;
+        let violatingStudents = 0;
 
         filteredCommandPeserta.forEach((pu) => {
           const logs = Array.isArray(pu.log_pelanggaran) ? pu.log_pelanggaran : [];
           if (logs.length > 0 || Number(pu.jumlah_pelanggaran) > 0) {
-            letviolatingStudents += 1;
+            violatingStudents += 1;
           }
 
           if (logs.length > 0) {
@@ -2182,7 +2245,7 @@
         const maxCount = Math.max(1, ...categories.map(c => c.count));
         return {
           totalLogs,
-          violatingStudents: letviolatingStudents,
+          violatingStudents,
           items: categories.map(c => ({
             ...c,
             pct: c.count > 0 ? Math.max(10, Math.round((c.count / maxCount) * 100)) : 0
@@ -2219,6 +2282,38 @@
           return 0;
         });
       }, [users, akunFilterTingkat, akunFilterJurusan, akunFilterKelas, akunFilterAgama, akunSearch, akunSortBy]);
+
+      // Reset halaman Akun Peserta ke 1 saat filter, pencarian, sortir, atau ukuran halaman berubah
+      useEffect(() => {
+        setAkunCurrentPage(1);
+      }, [akunFilterTingkat, akunFilterJurusan, akunFilterKelas, akunFilterAgama, akunSearch, akunSortBy, akunPageSize]);
+
+      const akunPagination = useMemo(() => {
+        const totalItems = filteredUsers.length;
+        if (akunPageSize === 'ALL') {
+          return {
+            items: filteredUsers,
+            totalItems,
+            totalPages: 1,
+            currentPage: 1,
+            startIndex: 0,
+            endIndex: totalItems
+          };
+        }
+        const size = Number(akunPageSize) || 10;
+        const totalPages = Math.max(1, Math.ceil(totalItems / size));
+        const safePage = Math.min(Math.max(1, akunCurrentPage), totalPages);
+        const startIndex = (safePage - 1) * size;
+        const endIndex = Math.min(startIndex + size, totalItems);
+        return {
+          items: filteredUsers.slice(startIndex, endIndex),
+          totalItems,
+          totalPages,
+          currentPage: safePage,
+          startIndex,
+          endIndex
+        };
+      }, [filteredUsers, akunPageSize, akunCurrentPage]);
 
       const filteredStaffUsers = useMemo(() => {
         return staffUsers.filter(st => {
@@ -2534,8 +2629,8 @@
           require_token: true,
           token: generateExamToken(),
           token_updated_at: new Date().toISOString(),
-          limit_soal_pg: pgCount > 0 ? pgCount : 25,
-          limit_soal_uraian: urCount > 0 ? urCount : 5,
+          limit_soal_pg: pgCount,
+          limit_soal_uraian: urCount,
           peserta_ids: matchingStudents.map(u => u.id_user)
         };
       };
@@ -2557,7 +2652,7 @@
       }, [pesertaUjian, users, sesiUjian, paketSoal, raporFilterMapel, raporFilterTingkat, raporFilterKelas]);
 
       // Helper kalkulasi metrik detail hasil ujian per peserta
-      // Jumlah soal yang ditampilkan mengacu penuh pada ketetapan Konfigurasi Sesi (limit_soal_pg + limit_soal_uraian)
+      // Jumlah soal yang ditampilkan mengacu penuh pada ketetapan Konfigurasi Sesi & ketersediaan nyata di Bank Soal
       const getPesertaReportMetrics = (pu) => {
         const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
         const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
@@ -2569,13 +2664,13 @@
         const hasCustomLimitPG = sesi && sesi.limit_soal_pg !== undefined && sesi.limit_soal_pg !== null && String(sesi.limit_soal_pg).trim() !== '';
         const hasCustomLimitUraian = sesi && sesi.limit_soal_uraian !== undefined && sesi.limit_soal_uraian !== null && String(sesi.limit_soal_uraian).trim() !== '';
 
-        const limitPG = hasCustomLimitPG ? Math.max(0, Number(sesi.limit_soal_pg)) : pgQuestions.length;
-        const limitUraian = hasCustomLimitUraian ? Math.max(0, Number(sesi.limit_soal_uraian)) : uraianQuestions.length;
-        const totalSoalSesi = limitPG + limitUraian;
+        const rawLimitPG = hasCustomLimitPG ? Math.max(0, Number(sesi.limit_soal_pg)) : pgQuestions.length;
+        const rawLimitUraian = hasCustomLimitUraian ? Math.max(0, Number(sesi.limit_soal_uraian)) : uraianQuestions.length;
 
-        const skorPG = Number(pu.skor_pg) || 0;
-        const skorUraian = Number(pu.skor_uraian) || 0;
-        const nilaiTotal = skorPG + skorUraian;
+        // Batasi dengan jumlah soal PG dan Uraian yang benar-benar ada di paket soal tersebut
+        // (Contoh: jika paket soal berisi 25 PG & 0 Uraian, dan sesi menarik 20 PG, maka limitPG = 20 & limitUraian = 0 -> Total = 20 soal)
+        const limitPG = pgQuestions.length > 0 ? Math.min(rawLimitPG, pgQuestions.length) : rawLimitPG;
+        const limitUraian = uraianQuestions.length > 0 ? Math.min(rawLimitUraian, uraianQuestions.length) : (soalPaket.length > 0 ? 0 : rawLimitUraian);
 
         const savedPgMap = pu.jawaban_pg_siswa || {};
         const answeredPgKeys = Object.keys(savedPgMap).filter(k => String(savedPgMap[k] || '').trim() !== '');
@@ -2583,6 +2678,13 @@
           const jwb = pu.detail_uraian?.[q.id_soal]?.jawaban;
           return jwb !== undefined && String(jwb).trim() !== '';
         }).length || (pu.jawaban_uraian_teks && String(pu.jawaban_uraian_teks).trim() !== '' ? 1 : 0);
+
+        const configuredTotal = limitPG + limitUraian;
+        const totalSoalSesi = configuredTotal > 0 ? configuredTotal : Math.max(1, Object.keys(savedPgMap).length + answeredUraianCount);
+
+        const skorPG = Number(pu.skor_pg) || 0;
+        const skorUraian = Number(pu.skor_uraian) || 0;
+        const nilaiTotal = skorPG + skorUraian;
 
         let jmlBenarPG = (pu.jml_benar_pg !== undefined && pu.jml_benar_pg !== null && pu.jml_benar_pg !== '')
           ? Number(pu.jml_benar_pg)
@@ -2596,8 +2698,8 @@
           ? Number(pu.jml_terjawab)
           : (answeredPgKeys.length + answeredUraianCount);
 
-        jmlBenarPG = Math.min(limitPG, Math.max(0, jmlBenarPG));
-        jmlSalahPG = Math.min(Math.max(0, limitPG - jmlBenarPG), Math.max(0, jmlSalahPG));
+        jmlBenarPG = Math.min(limitPG > 0 ? limitPG : totalSoalSesi, Math.max(0, jmlBenarPG));
+        jmlSalahPG = Math.min(Math.max(0, (limitPG > 0 ? limitPG : totalSoalSesi) - jmlBenarPG), Math.max(0, jmlSalahPG));
         jmlTerjawab = Math.min(totalSoalSesi, Math.max(0, jmlTerjawab));
 
         const maxBobotUraian = uraianQuestions.slice(0, limitUraian > 0 ? limitUraian : uraianQuestions.length).reduce((acc, q) => acc + (Number(q.bobot_skor) || 0), 0);
@@ -2892,15 +2994,29 @@
         });
       };
 
-      // Buka Modal Preview Jawaban Soal PG Peserta (Review per Butir Soal PG sesuai Data Real Database)
+      // Buka Modal Preview Jawaban Soal PG Peserta (Review per Butir Soal PG yang Disajikan pada Sesi)
       const openPreviewJawabanPGModal = (pu) => {
         const m = getPesertaReportMetrics(pu);
         const soalPaketPG = masterSoal.filter(
           s => String(s.id_paket) === String(m.sesi?.id_paket) && s.tipe_soal === 'PG'
         );
-        const listPG = soalPaketPG;
-
         const savedPgMap = pu.jawaban_pg_siswa || {};
+        const savedKeys = Object.keys(savedPgMap);
+
+        // Tampilkan tepat sejumlah soal PG yang disajikan pada sesi (contoh: 20 soal dari 25 soal di Bank Soal)
+        let listPG = soalPaketPG;
+        if (savedKeys.length > 0) {
+          const inSaved = soalPaketPG.filter(s => Object.prototype.hasOwnProperty.call(savedPgMap, s.id_soal));
+          if (m.limitPG > 0 && inSaved.length < m.limitPG) {
+            const notInSaved = soalPaketPG.filter(s => !Object.prototype.hasOwnProperty.call(savedPgMap, s.id_soal));
+            listPG = [...inSaved, ...notInSaved].slice(0, m.limitPG);
+          } else {
+            listPG = m.limitPG > 0 ? inSaved.slice(0, m.limitPG) : inSaved;
+          }
+        } else if (m.limitPG > 0 && soalPaketPG.length > m.limitPG) {
+          listPG = soalPaketPG.slice(0, m.limitPG);
+        }
+
         const itemsReview = listPG.map((soal, idx) => {
           const kunci = String(soal.kunci_jawaban || 'A').trim().toUpperCase();
           const jmlOpsi = Number(soal.jumlah_opsi) || 5;
@@ -3418,8 +3534,13 @@
         setConfirmClearModal(null);
       };
 
+      const handleSelectSidebarTab = (tabId) => {
+        setActiveTab(tabId);
+        setMobileSidebarOpen(false);
+      };
+
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col lg:flex-row">
+        <div className="h-dvh w-full overflow-hidden bg-slate-950 text-slate-200 flex flex-col lg:flex-row relative">
           {toast && (
             <div className="fixed bottom-6 right-6 z-50 max-w-sm animate-bounce">
               <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md ${
@@ -3434,39 +3555,60 @@
             </div>
           )}
 
-          {/* SIDEBAR */}
-          <aside className="w-full lg:w-72 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-            <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-              <SkaridaLogo className="w-12 h-12" />
-              <div>
-                <h1 className="font-extrabold text-white tracking-tight text-lg">SKARIDA CBT</h1>
-                <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">SMK Negeri 2 Tegalsari</p>
-                <p className="text-[9px] text-slate-400 font-semibold">Dashboard Admin & Guru</p>
+          {/* OVERLAY BACKDROP SIDEBAR MOBILE */}
+          {mobileSidebarOpen && (
+            <div
+              onClick={() => setMobileSidebarOpen(false)}
+              className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm lg:hidden"
+            />
+          )}
+
+          {/* SIDEBAR RESPONSIVE (DRAWER DI MOBILE/TABLET, FIXED FULL-HEIGHT DI DESKTOP) */}
+          <aside
+            className={`fixed lg:static inset-y-0 left-0 z-50 w-72 h-full bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 overflow-hidden transition-transform duration-300 ease-in-out ${
+              mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            }`}
+          >
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <SkaridaLogo className="w-11 h-11" />
+                <div>
+                  <h1 className="font-extrabold text-white tracking-tight text-base sm:text-lg">SKARIDA CBT</h1>
+                  <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">SMK Negeri 2 Tegalsari</p>
+                  <p className="text-[9px] text-slate-400 font-semibold">Dashboard Admin & Guru</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-3 space-y-1.5 flex-1 overflow-y-auto">
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
-              <SidebarBtn active={activeTab === 'command-center'} onClick={() => setActiveTab('command-center')} icon={Activity} accent="emerald" label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
+              <SidebarBtn active={activeTab === 'command-center'} onClick={() => handleSelectSidebarTab('command-center')} icon={Activity} accent="emerald" label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
 
-              <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Master</div>
-              <SidebarBtn active={activeTab === 'master-ujian'} onClick={() => setActiveTab('master-ujian')} icon={Award} accent="amber" label="Manajemen Ujian" desc="Master Jenis & Nama Ujian" />
-              <SidebarBtn active={activeTab === 'master-jurusan'} onClick={() => setActiveTab('master-jurusan')} icon={Building2} accent="sky" label="Manajemen Jurusan" desc="Kompetensi Keahlian SMK" />
-              <SidebarBtn active={activeTab === 'master-kelas'} onClick={() => setActiveTab('master-kelas')} icon={GraduationCap} accent="violet" label="Manajemen Kelas" desc="Tingkat X/XI/XII & Rombel" />
+              <div className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Master</div>
+              <SidebarBtn active={activeTab === 'master-ujian'} onClick={() => handleSelectSidebarTab('master-ujian')} icon={Award} accent="amber" label="Manajemen Ujian" desc="Master Jenis & Nama Ujian" />
+              <SidebarBtn active={activeTab === 'master-jurusan'} onClick={() => handleSelectSidebarTab('master-jurusan')} icon={Building2} accent="sky" label="Manajemen Jurusan" desc="Kompetensi Keahlian SMK" />
+              <SidebarBtn active={activeTab === 'master-kelas'} onClick={() => handleSelectSidebarTab('master-kelas')} icon={GraduationCap} accent="violet" label="Manajemen Kelas" desc="Tingkat X/XI/XII & Rombel" />
 
-              <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Persiapan Ujian</div>
-              <SidebarBtn active={activeTab === 'manajemen-staff'} onClick={() => setActiveTab('manajemen-staff')} icon={ShieldCheck} accent="indigo" label="User Admin & Guru" desc="CRUD Akun Admin & Guru Mapel" />
-              <SidebarBtn active={activeTab === 'akun'} onClick={() => setActiveTab('akun')} icon={Users} accent="sky" label="Akun Peserta" desc="Filter Tingkat, Agama & Kartu" />
-              <SidebarBtn active={activeTab === 'bank-soal'} onClick={() => setActiveTab('bank-soal')} icon={BookOpen} accent="amber" label="Bank Soal" desc="Paket Mapel & Gambar Opsi" />
-              <SidebarBtn active={activeTab === 'sesi'} onClick={() => setActiveTab('sesi')} icon={CalendarClock} accent="violet" label="Konfigurasi Sesi" desc="Jadwal, Min Submit & Drag-Drop" />
-              <SidebarBtn active={activeTab === 'manajemen-peserta-ujian'} onClick={() => setActiveTab('manajemen-peserta-ujian')} icon={RefreshCw} accent="emerald" label="Manajemen Peserta Ujian" desc="Reset Ujian & Force Submit" />
+              <div className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Persiapan Ujian</div>
+              <SidebarBtn active={activeTab === 'manajemen-staff'} onClick={() => handleSelectSidebarTab('manajemen-staff')} icon={ShieldCheck} accent="indigo" label="User Admin & Guru" desc="CRUD Akun Admin & Guru Mapel" />
+              <SidebarBtn active={activeTab === 'akun'} onClick={() => handleSelectSidebarTab('akun')} icon={Users} accent="sky" label="Akun Peserta" desc="Filter Tingkat, Agama & Kartu" />
+              <SidebarBtn active={activeTab === 'bank-soal'} onClick={() => handleSelectSidebarTab('bank-soal')} icon={BookOpen} accent="amber" label="Bank Soal" desc="Paket Mapel & Gambar Opsi" />
+              <SidebarBtn active={activeTab === 'sesi'} onClick={() => handleSelectSidebarTab('sesi')} icon={CalendarClock} accent="violet" label="Konfigurasi Sesi" desc="Jadwal, Min Submit & Drag-Drop" />
+              <SidebarBtn active={activeTab === 'manajemen-peserta-ujian'} onClick={() => handleSelectSidebarTab('manajemen-peserta-ujian')} icon={RefreshCw} accent="emerald" label="Manajemen Peserta Ujian" desc="Reset Ujian & Force Submit" />
 
-              <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Evaluasi & Audit</div>
-              <SidebarBtn active={activeTab === 'koreksi'} onClick={() => setActiveTab('koreksi')} icon={FileCheck2} accent="rose" label="Koreksi & e-Rapor" desc="Audit Waktu, Log & Nilai" />
-              <SidebarBtn active={activeTab === 'clear-database'} onClick={() => setActiveTab('clear-database')} icon={Database} accent="rose" label="Clear Database" desc="Kosongkan Data Per Tabel" />
+              <div className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Evaluasi & Audit</div>
+              <SidebarBtn active={activeTab === 'koreksi'} onClick={() => handleSelectSidebarTab('koreksi')} icon={FileCheck2} accent="rose" label="Koreksi & e-Rapor" desc="Audit Waktu, Log & Nilai" />
+              <SidebarBtn active={activeTab === 'clear-database'} onClick={() => handleSelectSidebarTab('clear-database')} icon={Database} accent="rose" label="Clear Database" desc="Kosongkan Data Per Tabel" />
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-900/50 space-y-2">
+            <div className="p-3.5 border-t border-slate-800 bg-slate-900/90 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <UserCircle2 className="w-6 h-6 text-indigo-400" />
@@ -3485,39 +3627,49 @@
             </div>
           </aside>
 
-          {/* MAIN WORKSPACE */}
-          <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto bg-slate-950">
-            <header className="bg-slate-900/70 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 backdrop-blur-md">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                {activeTab === 'command-center' && <><Activity className="w-5 h-5 text-indigo-400" /> Command Center & Live Proctoring</>}
-                {activeTab === 'master-ujian' && <><Award className="w-5 h-5 text-indigo-400" /> Manajemen Master Ujian</>}
-                {activeTab === 'master-jurusan' && <><Building2 className="w-5 h-5 text-indigo-400" /> Manajemen Master Jurusan</>}
-                {activeTab === 'master-kelas' && <><GraduationCap className="w-5 h-5 text-indigo-400" /> Manajemen Master Kelas & Tingkat (X, XI, XII)</>}
-                {activeTab === 'manajemen-staff' && <><ShieldCheck className="w-5 h-5 text-indigo-400" /> Manajemen User Admin & Guru (CRUD)</>}
-                {activeTab === 'akun' && <><Users className="w-5 h-5 text-indigo-400" /> Manajemen Akun Peserta</>}
-                {activeTab === 'bank-soal' && <><BookOpen className="w-5 h-5 text-indigo-400" /> Bank Soal Multimedia & Opsi Dinamis</>}
-                {activeTab === 'sesi' && <><CalendarClock className="w-5 h-5 text-indigo-400" /> Konfigurasi Sesi & Drag-Drop Enrollment</>}
-                {activeTab === 'manajemen-peserta-ujian' && <><RefreshCw className="w-5 h-5 text-emerald-400" /> Manajemen Peserta Ujian (Reset Ujian & Force Submit)</>}
-                {activeTab === 'koreksi' && <><FileCheck2 className="w-5 h-5 text-indigo-400" /> Koreksi Uraian, Audit Waktu & e-Rapor</>}
-                {activeTab === 'clear-database' && <><Database className="w-5 h-5 text-rose-400" /> Pemeliharaan & Kosongkan Database Per Tabel</>}
-              </h2>
-              <div className="flex items-center gap-3">
+          {/* MAIN WORKSPACE (SCROLL MANDIRI TANPA RUANG KOSONG DI BAWAH) */}
+          <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto bg-slate-950">
+            <header className="bg-slate-900/85 border-b border-slate-800 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 shrink-0"
+                  title="Buka Menu Navigasi"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
+                  {activeTab === 'command-center' && <><Activity className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Command Center & Live Proctoring</span></>}
+                  {activeTab === 'master-ujian' && <><Award className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Manajemen Master Ujian</span></>}
+                  {activeTab === 'master-jurusan' && <><Building2 className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Manajemen Master Jurusan</span></>}
+                  {activeTab === 'master-kelas' && <><GraduationCap className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Manajemen Master Kelas & Tingkat</span></>}
+                  {activeTab === 'manajemen-staff' && <><ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Manajemen User Admin & Guru</span></>}
+                  {activeTab === 'akun' && <><Users className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Manajemen Akun Peserta</span></>}
+                  {activeTab === 'bank-soal' && <><BookOpen className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Bank Soal Multimedia & Opsi Dinamis</span></>}
+                  {activeTab === 'sesi' && <><CalendarClock className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Konfigurasi Sesi & Enrollment</span></>}
+                  {activeTab === 'manajemen-peserta-ujian' && <><RefreshCw className="w-5 h-5 text-emerald-400 shrink-0" /> <span className="truncate">Manajemen Peserta Ujian</span></>}
+                  {activeTab === 'koreksi' && <><FileCheck2 className="w-5 h-5 text-indigo-400 shrink-0" /> <span className="truncate">Koreksi Uraian, Audit Waktu & e-Rapor</span></>}
+                  {activeTab === 'clear-database' && <><Database className="w-5 h-5 text-rose-400 shrink-0" /> <span className="truncate">Pemeliharaan & Clear Database</span></>}
+                </h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => fetchAllFromSheets(false)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 border transition ${
                     dbConnStatus === 'connected'
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                      ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
                       : dbConnStatus === 'error'
-                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
-                      : 'bg-sky-500/15 border-sky-500/30 text-sky-300'
+                      ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/40'
+                      : 'bg-sky-500/15 text-sky-300 border-sky-500/30'
                   }`}
                   title="Klik untuk memuat ulang seluruh data dari Google Sheets"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>
                     {isSyncing
-                      ? 'Memuat Database...'
+                      ? 'Memuat DB...'
                       : dbConnStatus === 'connected'
                       ? `DB Terhubung (${users.length} Siswa • ${masterSoal.length} Soal)`
                       : 'Muat Ulang Database'}
@@ -3525,12 +3677,12 @@
                 </button>
                 <button
                   onClick={() => setShowMobileSimulator(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"
+                  className="hidden sm:flex px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold items-center gap-1.5 shadow-lg"
                 >
-                  <Smartphone className="w-4 h-4" /> Simulator Proteksi HP (3-Strike)
+                  <Smartphone className="w-4 h-4" /> Uji Layar HP Siswa
                 </button>
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
-                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <Clock className="w-4 h-4 text-emerald-400 animate-pulse" />
                   <span className="font-mono text-xs font-bold text-emerald-400">{indonesianClockStr}</span>
                   <select
                     value={zonaWaktuIndonesia}
@@ -3782,14 +3934,34 @@
 
                   {/* Tabel Live Proctoring */}
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                    <div className="p-4 border-b border-slate-800">
-                      <h3 className="font-bold text-sm text-white">Live Proctoring & Kontrol 3-Strike Peserta</h3>
+                    <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-sm text-white">Live Proctoring & Kontrol 3-Strike Peserta</h3>
+                        <p className="text-[11px] text-slate-400">
+                          Menampilkan <strong className="text-white">{ccPagination.totalItems === 0 ? 0 : ccPagination.startIndex + 1} – {ccPagination.endIndex}</strong> dari <strong className="text-emerald-400">{ccPagination.totalItems}</strong> peserta
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-400 font-semibold">Tampilkan:</span>
+                        <select
+                          value={ccPageSize}
+                          onChange={e => setCcPageSize(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                          className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-300 outline-none focus:border-indigo-500"
+                        >
+                          <option value={10}>10 Data</option>
+                          <option value={25}>25 Data</option>
+                          <option value={50}>50 Data</option>
+                          <option value={100}>100 Data</option>
+                          <option value="ALL">Tampilkan Semua ({ccPagination.totalItems})</option>
+                        </select>
+                      </div>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="bg-slate-950/60 text-slate-400 uppercase border-b border-slate-800">
-                            <th className="p-3.5 pl-5">Peserta & Kelas</th>
+                            <th className="p-3.5 pl-5 w-12 text-center">No</th>
+                            <th className="p-3.5">Peserta & Kelas</th>
                             <th className="p-3.5">Status Pengerjaan</th>
                             <th className="p-3.5">Perangkat & Single-Session</th>
                             <th className="p-3.5">Status 3-Strike</th>
@@ -3797,7 +3969,7 @@
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
-                          {filteredCommandPeserta.map(pu => {
+                          {ccPagination.items.map((pu, idx) => {
                             const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
                             const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
                             const paket = paketSoal.find(p => String(p.id_paket) === String(sesi?.id_paket));
@@ -3815,7 +3987,10 @@
                             };
                             return (
                               <tr key={pu.id_peserta_ujian} className="hover:bg-slate-800/30">
-                                <td className="p-3.5 pl-5">
+                                <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">
+                                  {ccPagination.startIndex + idx + 1}
+                                </td>
+                                <td className="p-3.5">
                                   <div className="font-bold text-white">{actionItem.nama_lengkap}</div>
                                   <div className="text-[10px] text-slate-400">Tingkat {u?.tingkat || inferTingkatFromKelas(u?.kelas)} • {actionItem.kelas} • NISN: {actionItem.username_nisn}</div>
                                 </td>
@@ -3855,7 +4030,7 @@
                           })}
                           {filteredCommandPeserta.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="p-8 text-center text-slate-500">
+                              <td colSpan={6} className="p-8 text-center text-slate-500">
                                 Belum ada data peserta pada filter sesi ini. Klik tombol <strong>"DB Terhubung / Muat Ulang Database"</strong> di kanan atas atau periksa menu <strong>Konfigurasi Sesi</strong>.
                               </td>
                             </tr>
@@ -3863,6 +4038,38 @@
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Footer Pagination Live Proctoring Command Center */}
+                    {ccPagination.totalItems > 0 && (
+                      <div className="p-3.5 bg-slate-950/60 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="text-slate-400">
+                          Menampilkan <strong className="text-white">{ccPagination.startIndex + 1}</strong> sampai <strong className="text-white">{ccPagination.endIndex}</strong> dari <strong className="text-emerald-400">{ccPagination.totalItems}</strong> peserta
+                        </div>
+                        {ccPageSize !== 'ALL' && ccPagination.totalPages > 1 && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={ccPagination.currentPage <= 1}
+                              onClick={() => setCcCurrentPage(p => Math.max(1, p - 1))}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold flex items-center gap-1"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                            </button>
+                            <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono font-bold text-sky-300">
+                              Hal {ccPagination.currentPage} / {ccPagination.totalPages}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={ccPagination.currentPage >= ccPagination.totalPages}
+                              onClick={() => setCcCurrentPage(p => Math.min(ccPagination.totalPages, p + 1))}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold flex items-center gap-1"
+                            >
+                              Next <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3872,14 +4079,14 @@
                 <div className="space-y-4">
                   <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
                     <div>
-                      <h3 className="font-bold text-white text-sm">Daftar Master Jenis Ujian</h3>
-                      <p className="text-xs text-slate-400">Kelola kategori ujian (PTS, PAS, USP, Kuis Harian) yang terhubung ke Google Sheets (<code>master_ujian</code>).</p>
+                      <h3 className="font-bold text-white text-sm">Daftar Master Jenis & Nama Ujian</h3>
+                      <p className="text-xs text-slate-400">Kelola kategori ujian (PTS, PAS, USP, Kuis) yang tersimpan di Google Sheets (<code>master_ujian</code>).</p>
                     </div>
                     <button
                       onClick={() => setUjianModal({ id_ujian: null, kode: '', nama_ujian: '', status: 'Aktif' })}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg"
                     >
-                      <Plus className="w-4 h-4" /> Tambah Jenis Ujian
+                      <Plus className="w-4 h-4" /> Tambah Master Ujian
                     </button>
                   </div>
 
@@ -3889,7 +4096,7 @@
                         <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
                           <th className="p-3.5 pl-5 w-14 text-center">No</th>
                           <th className="p-3.5">Kode Ujian</th>
-                          <th className="p-3.5">Nama Lengkap Jenis Ujian</th>
+                          <th className="p-3.5">Nama Lengkap Ujian</th>
                           <th className="p-3.5 text-center">Status</th>
                           <th className="p-3.5 text-right pr-5">Aksi</th>
                         </tr>
@@ -3916,7 +4123,7 @@
                                 onClick={() => {
                                   setMasterUjian(masterUjian.filter(item => item.id_ujian !== u.id_ujian));
                                   syncToSheets({ action: 'delete', sheet: 'master_ujian', pkField: 'id_ujian', pkValue: u.id_ujian });
-                                  triggerToast('Dihapus', 'Master jenis ujian telah dihapus.', 'warning');
+                                  triggerToast('Dihapus', 'Master Ujian telah dihapus.', 'warning');
                                 }}
                                 className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
                               >
@@ -3928,7 +4135,7 @@
                         {masterUjian.length === 0 && (
                           <tr>
                             <td colSpan={5} className="p-8 text-center text-slate-500">
-                              Belum ada data Master Ujian di Google Sheets (<code>master_ujian</code>). Klik <strong>"+ Tambah Jenis Ujian"</strong> untuk membuat baru.
+                              Belum ada data Master Ujian di Google Sheets (<code>master_ujian</code>). Klik <strong>"+ Tambah Master Ujian"</strong>.
                             </td>
                           </tr>
                         )}
@@ -4250,8 +4457,27 @@
                     />
                   </div>
 
-                  {/* Tabel Akun Peserta dengan Kolom Nomor Urut (No) */}
+                  {/* Tabel Akun Peserta dengan Kolom Nomor Urut (No) & Pengaturan Jumlah Tampil (10, 25, 50, 100, Semua) */}
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-xs text-slate-400">
+                        Menampilkan <strong className="text-white">{akunPagination.totalItems === 0 ? 0 : akunPagination.startIndex + 1} – {akunPagination.endIndex}</strong> dari <strong className="text-sky-400">{akunPagination.totalItems}</strong> akun peserta terfilter
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-400 font-semibold">Tampilkan:</span>
+                        <select
+                          value={akunPageSize}
+                          onChange={e => setAkunPageSize(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                          className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-300 outline-none focus:border-indigo-500"
+                        >
+                          <option value={10}>10 Data</option>
+                          <option value={25}>25 Data</option>
+                          <option value={50}>50 Data</option>
+                          <option value={100}>100 Data</option>
+                          <option value="ALL">Tampilkan Semua ({akunPagination.totalItems})</option>
+                        </select>
+                      </div>
+                    </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs">
                         <thead>
@@ -4267,9 +4493,11 @@
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
-                          {filteredUsers.map((u, idx) => (
+                          {akunPagination.items.map((u, idx) => (
                             <tr key={u.id_user} className="hover:bg-slate-800/30">
-                              <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
+                              <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">
+                                {akunPagination.startIndex + idx + 1}
+                              </td>
                               <td className="p-3.5 font-mono font-bold text-indigo-400">{u.username_nisn}</td>
                               <td className="p-3.5 font-bold text-white">{u.nama_lengkap}</td>
                               <td className="p-3.5">
@@ -4311,6 +4539,38 @@
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Footer Pagination Tabel Akun Peserta */}
+                    {akunPagination.totalItems > 0 && (
+                      <div className="p-3.5 bg-slate-950/60 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="text-slate-400">
+                          Menampilkan <strong className="text-white">{akunPagination.startIndex + 1}</strong> sampai <strong className="text-white">{akunPagination.endIndex}</strong> dari <strong className="text-sky-400">{akunPagination.totalItems}</strong> peserta
+                        </div>
+                        {akunPageSize !== 'ALL' && akunPagination.totalPages > 1 && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={akunPagination.currentPage <= 1}
+                              onClick={() => setAkunCurrentPage(p => Math.max(1, p - 1))}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold flex items-center gap-1"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                            </button>
+                            <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono font-bold text-sky-300">
+                              Hal {akunPagination.currentPage} / {akunPagination.totalPages}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={akunPagination.currentPage >= akunPagination.totalPages}
+                              onClick={() => setAkunCurrentPage(p => Math.min(akunPagination.totalPages, p + 1))}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold flex items-center gap-1"
+                            >
+                              Next <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -7147,8 +7407,8 @@
                         setSesiModal({
                           ...sesiModal,
                           id_paket: nextPaketId,
-                          limit_soal_pg: pgCnt > 0 ? pgCnt : sesiModal.limit_soal_pg,
-                          limit_soal_uraian: urCnt > 0 ? urCnt : sesiModal.limit_soal_uraian,
+                          limit_soal_pg: pgCnt,
+                          limit_soal_uraian: urCnt,
                           peserta_ids: matchingUsers.map(u => u.id_user)
                         });
                       }}
