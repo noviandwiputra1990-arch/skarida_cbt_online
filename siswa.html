@@ -704,6 +704,7 @@
       const [strikes, setStrikes] = useState(0);
       const [violationLogs, setViolationLogs] = useState([]);
       const [activeStrikePopup, setActiveStrikePopup] = useState(null);
+      const [screenshotWarningPopup, setScreenshotWarningPopup] = useState(null);
       const [isScreenObscured, setIsScreenObscured] = useState(false);
       const [watermarkShift, setWatermarkShift] = useState(0);
       const [finishSummary, setFinishSummary] = useState(null);
@@ -717,9 +718,10 @@
       const isSubmittingExamRef = React.useRef(false);
       const hasRestoredSessionRef = React.useRef(false);
       const isSafeRefreshingRef = React.useRef(false);
+      const wakeLockRef = React.useRef(null);
       const touchGestureRef = React.useRef({ startY: 0, startX: 0, startTime: 0, inEdgeZone: false });
 
-      // Helper mengaktifkan Fullscreen 1 Layar Penuh & menyembunyikan Menu Bar / Navigation UI
+      // Helper mengaktifkan Fullscreen 1 Layar Penuh, WakeLock & KeyboardLock untuk menekan Popup Notifikasi Sistem
       const enterFullscreenOneScreen = async () => {
         try {
           const docEl = document.documentElement;
@@ -732,6 +734,18 @@
               docEl.msRequestFullscreen();
             }
           }
+          // Kunci tombol sistem & keyboard agar popup notifikasi eksternal tidak mengambil alih input
+          if (navigator.keyboard && navigator.keyboard.lock) {
+            navigator.keyboard.lock(['Escape', 'MetaLeft', 'MetaRight', 'AltLeft', 'AltRight']).catch(() => {});
+          }
+          // Aktifkan Screen Wake Lock agar layar tidak redup/memicu notifikasi lockscreen
+          if (navigator.wakeLock && navigator.wakeLock.request && !wakeLockRef.current) {
+            navigator.wakeLock.request('screen').then(lock => {
+              wakeLockRef.current = lock;
+              lock.addEventListener('release', () => { wakeLockRef.current = null; });
+            }).catch(() => {});
+          }
+          window.focus();
           setIsFullscreenLocked(true);
         } catch (_) {
           setIsFullscreenLocked(true);
@@ -1712,6 +1726,25 @@
         }
       };
 
+      // Handler Peringatan Screenshot (HANYA Memunculkan Peringatan & Sensor Layar TANPA Menghitung Sebagai Pelanggaran / Strike)
+      const handleTriggerScreenshotWarning = (sourceLabel = 'Percobaan Screenshot / Tangkapan Layar') => {
+        if (screen !== 'exam') return;
+        if (isSafeRefreshingRef.current) return;
+
+        // Sensor layar soal seketika agar hasil tangkapan layar tidak menampilkan soal
+        setIsScreenObscured(true);
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText('SKARIDA CBT — DILARANG SCREENSHOT SOAL & JAWABAN').catch(() => {});
+          }
+        } catch (_) {}
+
+        setScreenshotWarningPopup({
+          type: sourceLabel,
+          time: getWaktuIndonesiaString()
+        });
+      };
+
       // Cooldown 3 detik pada Popup Peringatan Pelanggaran
       useEffect(() => {
         if (!activeStrikePopup || activeStrikePopup.cooldown <= 0) return;
@@ -1739,6 +1772,7 @@
         await loadScheduleAndDatabase();
         setMediaReloadKey(prev => prev + 1);
         await enterFullscreenOneScreen();
+
         setIsRefreshingSchedule(false);
         triggerToast(
           'Halaman & Soal Diperbarui!',
@@ -1746,12 +1780,13 @@
             ? `Soal No. ${currentIndex + 1} dan jawaban Anda berhasil dimuat ulang tanpa mereset waktu.`
             : 'Jadwal sesi & bank soal berhasil disinkronkan ulang.'
         );
+
         setTimeout(() => {
           isSafeRefreshingRef.current = false;
-        }, 2000);
+        }, 2200);
       };
 
-      // Pasang Sensor Anti-Kecurangan & Anti-Screenshot Real-Time selama screen === 'exam'
+      // Pasang Sensor Anti-Kecurangan, Anti-Quick-Reply Notifikasi WA & Anti-Screenshot selama screen === 'exam'
       useEffect(() => {
         if (screen !== 'exam') return;
         if (activeSesiObj && activeSesiObj.is_proctoring_active === false) return;
@@ -1759,14 +1794,38 @@
         const onVisibilityChange = () => {
           if (document.hidden && !isSafeRefreshingRef.current) {
             setIsScreenObscured(true);
-            handleTriggerViolation('Pindah Tab / Overlay Screenshot / Membuka Aplikasi Lain');
+            handleTriggerViolation('Membuka Notifikasi Pesan (WA/Chat) / Pindah Aplikasi Saat Ujian');
           }
         };
 
         const onWindowBlur = () => {
           if (!isSafeRefreshingRef.current) {
             setIsScreenObscured(true);
-            handleTriggerViolation('Kehilangan Fokus Layar Ujian (Screenshot Overlay / Notifikasi WA / Floating App)');
+            // Paksa tarik kembali fokus ke jendela ujian agar popup Quick Reply WA tertutup
+            setTimeout(() => {
+              try { window.focus(); } catch (_) {}
+            }, 50);
+            handleTriggerViolation('Interaksi pada Popup Notifikasi Chat (WA/Pesan) / Floating App di Luar Ruang Ujian');
+          }
+        };
+
+        // Sensor Anti-Quick-Reply WA (Mendeteksi jika keyboard HP terbuka untuk membalas popup notifikasi WA di luar kolom jawaban Uraian)
+        const baseViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const onVisualViewportResize = () => {
+          if (isSafeRefreshingRef.current || !window.visualViewport) return;
+          const currentVh = window.visualViewport.height;
+          const heightDrop = baseViewportHeight - currentVh;
+          const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toUpperCase() : '';
+          const isTypingInExamInput = activeTag === 'TEXTAREA' || activeTag === 'INPUT';
+
+          // Jika tinggi viewport menyusut > 130px (keyboard virtual HP muncul untuk membalas chat WA di notifikasi) padahal siswa tidak sedang mengetik di kotak jawaban
+          if (heightDrop > 130 && !isTypingInExamInput) {
+            setIsScreenObscured(true);
+            try {
+              if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+              window.focus();
+            } catch (_) {}
+            handleTriggerViolation('Membalas Chat WA / Mengetik pada Popup Notifikasi Pesan Saat Ujian');
           }
         };
 
@@ -1777,21 +1836,20 @@
           }
         };
 
-        // Sensor Deteksi Gestur Screenshot 3 Jari & Slide Atas / Tarik Menu Bar
+        // Sensor Deteksi Gestur Screenshot 3 Jari (Hanya Peringatan) & Slide Atas / Tarik Menu Bar (Pelanggaran)
         const onTouchStartSensor = (e) => {
           if (!e.touches || e.touches.length === 0) return;
 
-          // Deteksi Gestur Screenshot 3 Jari pada HP Android (Xiaomi, Oppo, Realme, Vivo, OnePlus)
+          // Deteksi Gestur Screenshot 3 Jari pada HP Android -> HANYA PERINGATAN (Tanpa tambah pelanggaran)
           if (e.touches.length >= 3) {
             if (e.cancelable) e.preventDefault();
-            setIsScreenObscured(true);
-            handleTriggerViolation('Percobaan Screenshot Gestur 3 Jari di Layar HP');
+            handleTriggerScreenshotWarning('Percobaan Screenshot Gestur 3 Jari di Layar HP');
             return;
           }
 
           const t = e.touches[0];
           const viewH = window.innerHeight || document.documentElement.clientHeight;
-          const isTopZone = t.clientY <= 70;
+          const isTopZone = t.clientY <= 80;
           const isBottomZone = t.clientY >= viewH - 65;
           const inScrollableQuestion = Boolean(e.target && e.target.closest && e.target.closest('[data-exam-scroll="true"]'));
 
@@ -1806,10 +1864,10 @@
         const onTouchMoveSensor = (e) => {
           if (!e.touches || e.touches.length === 0) return;
 
+          // Gestur Screenshot Swipe 3 Jari -> HANYA PERINGATAN (Tanpa tambah pelanggaran)
           if (e.touches.length >= 3) {
             if (e.cancelable) e.preventDefault();
-            setIsScreenObscured(true);
-            handleTriggerViolation('Percobaan Screenshot Swipe 3 Jari di Layar HP');
+            handleTriggerScreenshotWarning('Percobaan Screenshot Swipe 3 Jari di Layar HP');
             return;
           }
 
@@ -1818,11 +1876,11 @@
           const deltaY = t.clientY - g.startY;
           const deltaX = Math.abs(t.clientX - g.startX);
 
-          // 1. Jika peserta menyentuh area tepi atas (<= 70px) lalu men-slide ke bawah atau ke atas (membuka menu/notifikasi bar)
-          if (g.startY <= 70 && Math.abs(deltaY) > 18 && Math.abs(deltaY) > deltaX) {
+          // 1. Jika peserta menyentuh area tepi atas (<= 80px, zona munculnya popup notifikasi WA) lalu men-slide
+          if (g.startY <= 80 && Math.abs(deltaY) > 15 && Math.abs(deltaY) > deltaX) {
             if (e.cancelable) e.preventDefault();
             setIsScreenObscured(true);
-            handleTriggerViolation('Mencoba Men-slide Area Atas / Membuka Menu Bar & Panel Notifikasi');
+            handleTriggerViolation('Menarik / Membuka Popup Notifikasi Pesan (WA) di Area Atas Layar');
             return;
           }
 
@@ -1839,39 +1897,35 @@
             e.key === 'PrintScreen' ||
             e.key === 'VolumeDown' ||
             (e.metaKey && e.shiftKey && ['3', '4', '5', 's'].includes(e.key.toLowerCase())) ||
-            (e.ctrlKey && e.shiftKey && ['s', 'i', 'j', 'c'].includes(e.key.toLowerCase()));
+            (e.ctrlKey && e.shiftKey && ['s'].includes(e.key.toLowerCase()));
+
+          // Jika tombol Screenshot ditekan -> HANYA PERINGATAN TANPA PELANGGARAN
+          if (isScreenshotCombo) {
+            e.preventDefault();
+            handleTriggerScreenshotWarning(`Percobaan Screenshot Layar (${e.key})`);
+            return;
+          }
 
           if (
-            isScreenshotCombo ||
             e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) ||
             (e.ctrlKey && ['c', 'v', 'x', 'u', 'p', 's'].includes(e.key.toLowerCase())) ||
             (e.altKey && e.key === 'Tab')
           ) {
             e.preventDefault();
             setIsScreenObscured(true);
-            handleTriggerViolation(
-              isScreenshotCombo
-                ? `Percobaan Screenshot Layar (${e.key})`
-                : `Tombol Pintasan Terlarang (${e.ctrlKey ? 'Ctrl+' : ''}${e.key})`
-            );
+            handleTriggerViolation(`Tombol Pintasan Terlarang (${e.ctrlKey ? 'Ctrl+' : ''}${e.key})`);
           }
         };
 
         const onKeyUpSensor = (e) => {
           if (e.key === 'PrintScreen') {
-            setIsScreenObscured(true);
-            try {
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText('SKARIDA CBT — SCREENSHOT DIBLOKIR').catch(() => {});
-              }
-            } catch (_) {}
-            handleTriggerViolation('Percobaan Screenshot Layar (Tombol PrintScreen)');
+            handleTriggerScreenshotWarning('Percobaan Screenshot Layar (Tombol PrintScreen)');
           }
         };
 
         const onBeforePrint = () => {
-          setIsScreenObscured(true);
-          handleTriggerViolation('Percobaan Cetak / Simpan Halaman Soal ke PDF');
+          handleTriggerScreenshotWarning('Percobaan Cetak / Simpan Halaman Soal');
         };
 
         const onCopyPaste = (e) => {
@@ -1881,6 +1935,9 @@
 
         document.addEventListener('visibilitychange', onVisibilityChange);
         window.addEventListener('blur', onWindowBlur);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', onVisualViewportResize);
+        }
         document.addEventListener('fullscreenchange', onFullscreenChange);
         document.addEventListener('touchstart', onTouchStartSensor, { passive: false });
         document.addEventListener('touchmove', onTouchMoveSensor, { passive: false });
@@ -1893,6 +1950,9 @@
         return () => {
           document.removeEventListener('visibilitychange', onVisibilityChange);
           window.removeEventListener('blur', onWindowBlur);
+          if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', onVisualViewportResize);
+          }
           document.removeEventListener('fullscreenchange', onFullscreenChange);
           document.removeEventListener('touchstart', onTouchStartSensor);
           document.removeEventListener('touchmove', onTouchMoveSensor);
@@ -2204,12 +2264,13 @@
 
                       <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-[11px] text-slate-300 space-y-1">
                         <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                          <ShieldAlert className="w-4 h-4" /> Sistem Proteksi Anti-Kecurangan Aktif:
+                          <ShieldAlert className="w-4 h-4" /> Sistem Proteksi Anti-Notifikasi & Anti-Kecurangan:
                         </div>
                         <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-slate-400">
-                          <li>Dilarang melakukan <strong>Screenshot (3 jari / tombol HP)</strong>, rekam layar, pindah tab, atau membuka WA.</li>
-                          <li>Layar otomatis <strong>disensor hitam</strong> saat percobaan screenshot & identitas NISN/Nama tercetak di seluruh layar.</li>
-                          <li>Peringatan diberikan maksimal <strong>3 kali (3-Strike)</strong>. Pelanggaran ke-4 otomatis <strong>Force Submit</strong>!</li>
+                          <li>Mode Fullscreen mengaktifkan <strong>Perisai Anti-Popup Notifikasi & Blokir Quick-Reply WA</strong> (membuka/membalas popup notifikasi WA otomatis terdeteksi sebagai pelanggaran).</li>
+                          <li>Wajib mengaktifkan mode <strong>Jangan Ganggu (Do Not Disturb / DND)</strong> di HP selama ujian berlangsung.</li>
+                          <li>Percobaan <strong>Screenshot (3 jari / tombol HP)</strong> akan langsung menyensor layar & memunculkan peringatan keamanan.</li>
+                          <li>Peringatan pelanggaran diberikan maksimal <strong>3 kali (3-Strike)</strong>. Pelanggaran ke-4 otomatis <strong>Force Submit</strong>!</li>
                         </ul>
                       </div>
 
@@ -2245,11 +2306,10 @@
                       )}
 
                       <button
-                        type="button"
-                        onClick={() => handleStartOrResumeExamSession(false)}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg flex items-center justify-center gap-2"
+                        onClick={() => handleStartOrResumeExamSession(false, selectedSesi)}
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg"
                       >
-                        <Maximize2 className="w-4 h-4" /> Kunci Layar Penuh & Mulai Ujian
+                        <Maximize2 className="w-4 h-4" /> Aktifkan Fullscreen 1 Layar & Mulai Ujian
                       </button>
                     </div>
                   </div>
@@ -2257,53 +2317,88 @@
               </div>
             )}
 
-            {/* 2. LEMBAR KERJA UJIAN SISWA (DENGAN NAVIGASI SOAL LENGKAP & PROTEKSI ANTI-SCREENSHOT) */}
+            {/* 2. LEMBAR KERJA UJIAN SISWA (DENGAN ANTI-SCREENSHOT, ANTI-NOTIFIKASI WA & NAVIGASI LENGKAP) */}
             {screen === 'exam' && activeQuestion && (
               <div
                 onContextMenu={e => e.preventDefault()}
-                onDragStart={e => e.preventDefault()}
                 className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden select-none"
               >
-                {/* Forensic Dynamic Watermark Grid (Melapisi Soal & Jawaban agar Pelaku Screenshot/Foto Terlacak) */}
+                {/* FORENSIC DYNAMIC WATERMARK GRID (ANTI-SCREENSHOT & PELACAKAN FOTO LAYAR) */}
                 <div
                   style={{
                     transform: `rotate(-18deg) translate(${(watermarkShift % 2) * 14 - 7}px, ${Math.floor(watermarkShift / 2) * 12 - 6}px)`
                   }}
                   className="pointer-events-none absolute -inset-12 z-30 overflow-hidden opacity-[0.14] flex flex-col justify-between transition-transform duration-700"
                 >
-                  {Array.from({ length: 7 }).map((_, rowIdx) => (
-                    <div key={rowIdx} className="flex items-center justify-around gap-6 whitespace-nowrap">
+                  {Array.from({ length: 8 }).map((_, rowIdx) => (
+                    <div key={rowIdx} className="flex items-center justify-around gap-8 whitespace-nowrap">
                       <span className="text-[11px] font-mono font-black text-sky-300 tracking-wider">
-                        {loggedInUser.username_nisn} • {loggedInUser.nama_lengkap.toUpperCase()} • {loggedInUser.kelas}
+                        {loggedInUser.username_nisn} • {String(loggedInUser.nama_lengkap || '').toUpperCase()} • {loggedInUser.kelas}
                       </span>
                       <span className="text-[11px] font-mono font-black text-amber-300 tracking-wider">
-                        {clockWibStr} • SESI #{activeSesiObj?.id_sesi || 'CBT'} • ANTI-SCREENSHOT
+                        SKARIDA CBT • ANTI-SCREENSHOT • {clockWibStr}
+                      </span>
+                      <span className="text-[11px] font-mono font-black text-indigo-300 tracking-wider">
+                        SESI #{activeSesiObj?.id_sesi || '-'} • {loggedInUser.username_nisn}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Blackout Censorship Shield: Aktif seketika saat percobaan screenshot / blur terdeteksi */}
-                {isScreenObscured && !activeStrikePopup && (
+                {/* TIRAI SENSOR HITAM INSTAN (0ms BLACKOUT CENSORSHIP SAAT PERCOBAAN SCREENSHOT / NOTIFIKASI LUAR) */}
+                {isScreenObscured && !activeStrikePopup && !screenshotWarningPopup && (
                   <div className="absolute inset-0 z-40 bg-slate-950 flex flex-col items-center justify-center p-6 text-center space-y-4">
                     <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center">
                       <EyeOff className="w-8 h-8 text-rose-400" />
                     </div>
                     <h3 className="text-base font-black text-white uppercase tracking-wide">
-                      Layar Disensor — Proteksi Anti-Screenshot Aktif
+                      Layar Disensor — Proteksi Keamanan Ujian
                     </h3>
                     <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
-                      Konten soal disembunyikan secara otomatis karena terdeteksi gangguan fokus layar atau upaya tangkapan layar pada perangkat Anda.
+                      Konten soal disembunyikan seketika untuk mencegah tangkapan layar atau interaksi notifikasi luar.
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setIsScreenObscured(false);
+                        setScreenshotWarningPopup(null);
                         enterFullscreenOneScreen();
                       }}
                       className="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-lg"
                     >
                       Kembali ke Lembar Soal
+                    </button>
+                  </div>
+                )}
+
+                {/* POPUP PERINGATAN ANTI-SCREENSHOT (TANPA MENGHITUNG SEBAGAI PELANGGARAN / STRIKE) */}
+                {screenshotWarningPopup && !activeStrikePopup && (
+                  <div className="absolute inset-0 z-50 p-6 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-3">
+                      <EyeOff className="w-9 h-9 text-amber-300 animate-pulse" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase mb-2">
+                      Peringatan Keamanan • Tidak Dihitung Pelanggaran (Strike Tetap {strikes}/3)
+                    </span>
+                    <h3 className="text-lg font-black text-white mb-2">
+                      Dilarang Melakukan Screenshot Soal & Jawaban!
+                    </h3>
+                    <p className="text-xs text-slate-200 max-w-sm mb-3 leading-relaxed">
+                      Sistem mendeteksi: <strong className="text-amber-300">{screenshotWarningPopup.type}</strong>. Layar soal telah disensor otomatis untuk melindungi kerahasiaan bank soal.
+                    </p>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 max-w-sm mb-5">
+                      Tindakan ini <strong>hanya diberikan peringatan</strong> dan <strong>tidak menambah jumlah pelanggaran Anda</strong>. Silakan kembali melanjutkan pengerjaan soal dengan jujur.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScreenshotWarningPopup(null);
+                        setIsScreenObscured(false);
+                        enterFullscreenOneScreen();
+                      }}
+                      className="w-full max-w-xs py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition"
+                    >
+                      Saya Mengerti & Lanjutkan Mengerjakan
                     </button>
                   </div>
                 )}
