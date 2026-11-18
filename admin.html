@@ -2926,8 +2926,8 @@
               </div>
             </div>
 
-            <div className="p-3 space-y-1.5 flex-1 overflow-y-auto">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
+            <div class="p-3 space-y-1.5 flex-1 overflow-y-auto">
+              <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Monitoring</div>
               <SidebarBtn active={activeTab === 'command-center'} onClick={() => setActiveTab('command-center')} icon={Activity} accent="emerald" label="Command Center" desc="Analitik & Anti-Cheat 3-Strike" />
 
               <div className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Master</div>
@@ -4054,7 +4054,7 @@
                   <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
                     <div>
                       <h3 className="font-bold text-white text-sm">Daftar Sesi Ujian Terjadwal (Waktu Indonesia: {zonaWaktuIndonesia})</h3>
-                      <p className="text-xs text-slate-400">Atur Waktu Buka/Tutup ({zonaWaktuIndonesia}), Durasi, Minimal Waktu Submit, Toggle Acak Soal, Anti-Cheat, Token Otomatis (30m), & Target Peserta Sesuai Paket Soal.</p>
+                      <p className="text-xs text-slate-400">Atur Waktu Buka/Tutup ({zonaWaktuIndonesia}), Durasi, Minimal Waktu Submit, Toggle Acak Soal & Jawaban, Anti-Cheat, Token Otomatis (30m), & Target Peserta Sesuai Paket Soal.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] flex items-center gap-2">
@@ -4088,7 +4088,7 @@
                           <th className="p-3.5 pl-5">Nama Sesi</th>
                           <th className="p-3.5">Jadwal Buka - Tutup (Waktu Indonesia)</th>
                           <th className="p-3.5">Durasi & Min. Submit</th>
-                          <th className="p-3.5">Toggle Acak, Anti-Cheat & Token (Auto 30m)</th>
+                          <th className="p-3.5">Toggle Acak Soal & Jawaban, Anti-Cheat & Token</th>
                           <th className="p-3.5">Target Peserta</th>
                           <th className="p-3.5 text-right pr-5">Aksi CRUD</th>
                         </tr>
@@ -4112,7 +4112,7 @@
                               <td className="p-3.5">{s.durasi_menit} Mnt (Min. Submit: {s.minimal_menit_submit}m)</td>
                               <td className="p-3.5">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  {/* Quick Toggle ON/OFF Acak Soal */}
+                                  {/* Quick Toggle ON/OFF Acak Soal & Jawaban (1 Toggle Terpadu) */}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -4120,8 +4120,8 @@
                                       setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
                                       syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
                                       triggerToast(
-                                        `Acak Soal: ${updated.is_acak_soal ? 'ON' : 'OFF'}`,
-                                        `Pengacakan soal untuk "${s.nama_sesi_spesifik}" diubah ke ${updated.is_acak_soal ? 'AKTIF' : 'NONAKTIF'}.`
+                                        `Acak Soal & Jawaban: ${updated.is_acak_soal ? 'ON' : 'OFF'}`,
+                                        `Pengacakan urutan soal & opsi jawaban untuk "${s.nama_sesi_spesifik}" diubah ke ${updated.is_acak_soal ? 'AKTIF' : 'NONAKTIF'}.`
                                       );
                                     }}
                                     className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
@@ -4129,9 +4129,9 @@
                                         ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200'
                                         : 'bg-slate-950 border-slate-800 text-slate-400'
                                     }`}
-                                    title="Klik untuk Toggle ON/OFF Acak Urutan Soal"
+                                    title="Klik untuk Toggle ON/OFF Acak Urutan Soal & Opsi Jawaban"
                                   >
-                                    <span>Acak Soal:</span>
+                                    <span>Acak Soal & Jawaban:</span>
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${s.is_acak_soal ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
                                       {s.is_acak_soal ? 'ON' : 'OFF'}
                                     </span>
@@ -6545,14 +6545,14 @@
                   </div>
                 </div>
 
-                {/* PANEL TOGGLE ON/OFF ACAK SOAL, SISTEM PROTEKSI ANTI-KECURANGAN & TOKEN OTOMATIS */}
+                {/* PANEL TOGGLE ON/OFF ACAK SOAL & JAWABAN, SISTEM PROTEKSI ANTI-KECURANGAN & TOKEN OTOMATIS */}
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="font-bold text-indigo-400 uppercase text-[11px] tracking-wider">
-                    Pengaturan Pengacakan Soal, Proteksi Anti-Kecurangan & Token Ujian (Toggle ON / OFF)
+                    Pengaturan Acak Soal & Jawaban, Proteksi Anti-Kecurangan & Token Ujian (Toggle ON / OFF)
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Toggle 1: Acak Urutan Soal */}
+                    {/* Toggle 1: Acak Urutan Soal & Opsi Jawaban (1 Toggle Terpadu) */}
                     <div
                       onClick={() => setSesiModal({ ...sesiModal, is_acak_soal: !sesiModal.is_acak_soal })}
                       className={`p-3.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-3 ${
@@ -6563,10 +6563,10 @@
                     >
                       <div className="space-y-0.5">
                         <div className="font-extrabold text-white text-xs flex items-center gap-1.5">
-                          <span>Acak Urutan Soal</span>
+                          <span>Acak Soal & Jawaban</span>
                         </div>
                         <p className="text-[11px] text-slate-400 leading-snug">
-                          Mengacak urutan soal PG di nomor awal & mengunci Uraian di nomor akhir.
+                          Mengacak urutan butir soal dari Bank Soal sekaligus mengacak urutan opsi jawaban PG (A–E) pada setiap peserta.
                         </p>
                       </div>
                       <button
@@ -6874,7 +6874,7 @@
                       <span className="text-[10px] font-bold uppercase text-amber-400">Keamanan & Token Ujian (Auto 30m)</span>
                       <div className="flex flex-wrap gap-1.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${previewSesiModal.is_acak_soal ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400'}`}>
-                          Acak Soal: {previewSesiModal.is_acak_soal ? 'ON' : 'OFF'}
+                          Acak Soal & Jawaban: {previewSesiModal.is_acak_soal ? 'ON' : 'OFF'}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${previewSesiModal.is_proctoring_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
                           Anti-Cheat: {previewSesiModal.is_proctoring_active ? 'ON' : 'OFF'}
