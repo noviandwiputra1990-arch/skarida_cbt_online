@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Dashboard Siswa SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -49,6 +49,8 @@
   <div id="root"></div>
 
   <script>
+    const { useState, useEffect } = React;
+
     const safeGetStorage = (key, fallback = '') => {
       try {
         const val = localStorage.getItem(key);
@@ -90,7 +92,7 @@
     const LucideIcons = new Proxy({}, {
       get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => {
         const rawSvg = LUCIDE_ICON_PATHS[prop] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/>';
-        return window.React.createElement(
+        return React.createElement(
           'svg',
           Object.assign(
             {
@@ -228,46 +230,25 @@
 
     const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG_RAW)}`;
 
-    const isGithubOrCustomHost = () => {
-      if (typeof window === 'undefined') return false;
-      const { protocol, hostname } = window.location;
-      if (protocol !== 'http:' && protocol !== 'https:') return false;
-      if (!hostname) return false;
-      if (
-        hostname.includes('usercontent.goog') ||
-        hostname.includes('google.com') ||
-        hostname.includes('gstatic.com') ||
-        hostname.includes('webcontainer') ||
-        hostname.includes('codesandbox') ||
-        hostname.includes('stackblitz') ||
-        hostname === 'localhost' ||
-        hostname === '127.0.0.1'
-      ) {
-        return false;
-      }
-      return true;
+    const isPreviewSandboxEnv = () => {
+      if (typeof window === 'undefined') return true;
+      const { protocol, hostname, pathname } = window.location;
+      if (protocol === 'blob:' || protocol === 'about:' || protocol === 'data:') return true;
+      if (!hostname || hostname.includes('usercontent.goog') || hostname.includes('webcontainer') || hostname.includes('codesandbox') || hostname.includes('stackblitz')) return true;
+      if (pathname && pathname.includes('srcdoc')) return true;
+      return false;
     };
 
-    let cachedLogoResolvedSrc = LOGO_DATA_URI;
-    let hasCheckedExternalLogo = false;
+    let cachedLogoResolvedSrc = isPreviewSandboxEnv() ? LOGO_DATA_URI : 'logo_skarida.png';
 
     function SkaridaLogo({ className = 'w-10 h-10' }) {
-      const [logoSrc, setLogoSrc] = window.React.useState(cachedLogoResolvedSrc);
-      window.React.useEffect(() => {
-        if (hasCheckedExternalLogo || !isGithubOrCustomHost()) return;
-        hasCheckedExternalLogo = true;
-        fetch('logo_skarida.png', { method: 'HEAD' })
-          .then(res => {
-            const ct = res.headers ? (res.headers.get('content-type') || '') : '';
-            if (res.ok && ct.includes('image')) {
-              cachedLogoResolvedSrc = 'logo_skarida.png';
-              setLogoSrc('logo_skarida.png');
-            }
-          })
-          .catch(() => {});
-      }, []);
-      return window.React.createElement('img', {
+      const [logoSrc, setLogoSrc] = useState(cachedLogoResolvedSrc);
+      return React.createElement('img', {
         src: logoSrc,
+        onError: () => {
+          cachedLogoResolvedSrc = LOGO_DATA_URI;
+          setLogoSrc(LOGO_DATA_URI);
+        },
         alt: 'Logo SMK Negeri 2 Tegalsari',
         className: `${className} aspect-square object-contain shrink-0 drop-shadow-md select-none`
       });
@@ -654,7 +635,7 @@
     };
 
     function RichMathText({ text, className = '' }) {
-      return window.React.createElement('div', {
+      return React.createElement('div', {
         className: `rich-math-content whitespace-pre-line break-words leading-relaxed ${className}`,
         dangerouslySetInnerHTML: { __html: renderRichMathHtml(text) }
       });
@@ -662,8 +643,6 @@
   </script>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
-
     function StudentPortalApp() {
       const [viewportMode, setViewportMode] = useState('full');
       const [screen, setScreen] = useState('dashboard');
@@ -727,8 +706,6 @@
       const [activeStrikePopup, setActiveStrikePopup] = useState(null);
       const [screenshotWarningPopup, setScreenshotWarningPopup] = useState(null);
       const [isScreenObscured, setIsScreenObscured] = useState(false);
-      // Lensa Privasi Anti-Screenshot Tombol Fisik: Soal otomatis sangat blur & hitam saat jari lepas/diam untuk menekan tombol fisik HP
-      const [isTouchHoldingScreen, setIsTouchHoldingScreen] = useState(false);
       const [watermarkShift, setWatermarkShift] = useState(0);
       const [finishSummary, setFinishSummary] = useState(null);
       const [nowTimestampMs, setNowTimestampMs] = useState(() => Date.now());
@@ -742,195 +719,10 @@
       const hasRestoredSessionRef = React.useRef(false);
       const isSafeRefreshingRef = React.useRef(false);
       const wakeLockRef = React.useRef(null);
-      const audioTrapCtxRef = React.useRef(null);
-      const touchHoldTimerRef = React.useRef(null);
-      const lastTouchEpochRef = React.useRef(0);
-      const isFingerCurrentlyDownRef = React.useRef(false);
-      const lastTouchCoordRef = React.useRef({ x: 0, y: 0 });
-      const lastAccelRef = React.useRef({ x: 0, y: 0, z: 0, initialized: false });
       const touchGestureRef = React.useRef({ startY: 0, startX: 0, startTime: 0, inEdgeZone: false });
 
-      // =========================================================================
-      // ENGINE DOM SINKRON 0ms (MENUTUP SOAL SEBELUM OS MENANGKAP FRAMEBUFFER)
-      // =========================================================================
-      const applyDomPrivacyBlurInstant = (shouldBlur) => {
-        try {
-          const box = document.getElementById('skarida-protected-question-box');
-          const badge = document.getElementById('skarida-privacy-lens-badge');
-          if (box) {
-            if (shouldBlur) {
-              box.style.transition = 'none';
-              box.style.filter = 'blur(34px) brightness(0.03) contrast(250%)';
-              box.style.webkitFilter = 'blur(34px) brightness(0.03) contrast(250%)';
-              box.style.opacity = '0.04';
-            } else {
-              box.style.transition = 'none';
-              box.style.filter = 'none';
-              box.style.webkitFilter = 'none';
-              box.style.opacity = '1';
-            }
-          }
-          if (badge) {
-            badge.style.display = shouldBlur ? 'flex' : 'none';
-          }
-        } catch (_) {}
-      };
-
-      // Mengaktifkan Lensa Baca HANYA selama 1 jari aktif menyentuh/menggeser layar.
-      // Jika jari dilepas (0ms) atau jari ditahan diam > 680ms (saat tangan lain hendak menekan tombol fisik Power + Volume Bawah),
-      // layar langsung berubah menjadi Sangat Blur & Hitam Pekat dalam 0 milidetik langsung di level DOM!
-      const keepPrivacyLensClear = (durationMs = 680) => {
-        if (isScreenObscured || screenshotWarningPopup || activeStrikePopup) return;
-        applyDomPrivacyBlurInstant(false);
-        setIsTouchHoldingScreen(true);
-        if (touchHoldTimerRef.current) clearTimeout(touchHoldTimerRef.current);
-        touchHoldTimerRef.current = setTimeout(() => {
-          applyDomPrivacyBlurInstant(true);
-          setIsTouchHoldingScreen(false);
-        }, durationMs);
-      };
-
-      const engageInstantBlurAndBlackout = () => {
-        if (touchHoldTimerRef.current) clearTimeout(touchHoldTimerRef.current);
-        isFingerCurrentlyDownRef.current = false;
-        applyDomPrivacyBlurInstant(true);
-        setIsTouchHoldingScreen(false);
-      };
-
-      // Sensor DOM Sinkron 0ms untuk Tirai Hitam Penuh saat tombol fisik / fokus hilang terdeteksi
-      const engageInstantHardwareBlackoutDom = () => {
-        if (isSafeRefreshingRef.current) return;
-        engageInstantBlurAndBlackout();
-        try {
-          const curtainEl = document.getElementById('skarida-instant-blackout-curtain');
-          if (curtainEl) {
-            curtainEl.style.display = 'flex';
-            curtainEl.style.opacity = '1';
-          }
-        } catch (_) {}
-        setIsScreenObscured(true);
-      };
-
-      const releaseInstantHardwareBlackoutDom = () => {
-        try {
-          const curtainEl = document.getElementById('skarida-instant-blackout-curtain');
-          if (curtainEl) {
-            curtainEl.style.display = 'none';
-            curtainEl.style.opacity = '0';
-          }
-        } catch (_) {}
-        setIsScreenObscured(false);
-        applyDomPrivacyBlurInstant(!isFingerCurrentlyDownRef.current);
-      };
-
-      // Pengikat Fokus Tombol Fisik Volume HP (Membuat OS Android/iOS meneruskan event tombol Volume ke Browser)
-      const activateHardwareVolumeButtonTrap = () => {
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx && !audioTrapCtxRef.current) {
-            const ctx = new AudioCtx();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            gain.gain.value = 0.00001;
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            audioTrapCtxRef.current = ctx;
-          } else if (audioTrapCtxRef.current && audioTrapCtxRef.current.state === 'suspended') {
-            audioTrapCtxRef.current.resume().catch(() => {});
-          }
-        } catch (_) {}
-      };
-
-      // Fungsi Pembersih Cache Otomatis (Auto Clear Cache) Saat Siswa Logout
-      const clearAppCacheOnLogout = async (userId) => {
-        try {
-          const savedScriptUrl = safeGetStorage('skarida_script_url', DEFAULT_SCRIPT_URL);
-          const keysToRemove = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (!k) continue;
-            if (
-              k === 'skarida_cbt_session' ||
-              k === 'skarida_db_sesi' ||
-              k === 'skarida_db_paket' ||
-              k === 'skarida_db_soal' ||
-              k === 'skarida_db_users' ||
-              k === 'skarida_db_ujian' ||
-              k === 'skarida_db_jurusan' ||
-              k === 'skarida_db_kelas' ||
-              k === 'skarida_db_peserta_ujian' ||
-              (userId && k.includes(`_${userId}`))
-            ) {
-              keysToRemove.push(k);
-            }
-          }
-          keysToRemove.forEach(k => {
-            try { localStorage.removeItem(k); } catch (_) {}
-          });
-          safeSetStorage('skarida_script_url', savedScriptUrl);
-        } catch (_) {}
-
-        try { sessionStorage.clear(); } catch (_) {}
-
-        try {
-          if ('caches' in window && window.caches && typeof window.caches.keys === 'function') {
-            const cacheNames = await window.caches.keys();
-            await Promise.all(cacheNames.map(name => window.caches.delete(name)));
-          }
-        } catch (_) {}
-
-        try {
-          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            regs.forEach(r => r.unregister().catch(() => {}));
-          }
-        } catch (_) {}
-
-        try {
-          if (audioTrapCtxRef.current && audioTrapCtxRef.current.close) {
-            audioTrapCtxRef.current.close().catch(() => {});
-            audioTrapCtxRef.current = null;
-          }
-          if (wakeLockRef.current && wakeLockRef.current.release) {
-            wakeLockRef.current.release().catch(() => {});
-            wakeLockRef.current = null;
-          }
-        } catch (_) {}
-      };
-
-      // Helper Refresh Halaman & Soal Aman (Saat Gangguan Internet) Tanpa Dianggap Kecurangan & Tanpa Reset Waktu
-      const handleSafeRefreshPage = async () => {
-        isSafeRefreshingRef.current = true;
-        setIsRefreshingSchedule(true);
-        if (screen === 'exam' && activeSesiObj) {
-          saveLocalExamProgress({
-            currentIndex,
-            answers,
-            doubtful,
-            strikes,
-            violationLogs
-          });
-        }
-        await loadScheduleAndDatabase();
-        setMediaReloadKey(prev => prev + 1);
-        releaseInstantHardwareBlackoutDom();
-        await enterFullscreenOneScreen();
-        setIsRefreshingSchedule(false);
-        triggerToast(
-          'Halaman & Soal Diperbarui!',
-          screen === 'exam'
-            ? `Soal No. ${currentIndex + 1} dan jawaban Anda berhasil dimuat ulang tanpa mereset waktu.`
-            : 'Jadwal sesi & bank soal berhasil disinkronkan ulang.'
-        );
-        setTimeout(() => {
-          isSafeRefreshingRef.current = false;
-        }, 2200);
-      };
-
-      // Helper mengaktifkan Fullscreen 1 Layar Penuh, WakeLock, KeyboardLock & Hardware Volume Trap
+      // Helper mengaktifkan Fullscreen 1 Layar Penuh, WakeLock & KeyboardLock untuk menekan Popup Notifikasi Sistem
       const enterFullscreenOneScreen = async () => {
-        activateHardwareVolumeButtonTrap();
         try {
           const docEl = document.documentElement;
           if (document.fullscreenEnabled && !document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -942,9 +734,11 @@
               docEl.msRequestFullscreen();
             }
           }
+          // Kunci tombol sistem & keyboard agar popup notifikasi eksternal tidak mengambil alih input
           if (navigator.keyboard && navigator.keyboard.lock) {
             navigator.keyboard.lock(['Escape', 'MetaLeft', 'MetaRight', 'AltLeft', 'AltRight']).catch(() => {});
           }
+          // Aktifkan Screen Wake Lock agar layar tidak redup/memicu notifikasi lockscreen
           if (navigator.wakeLock && navigator.wakeLock.request && !wakeLockRef.current) {
             navigator.wakeLock.request('screen').then(lock => {
               wakeLockRef.current = lock;
@@ -1064,13 +858,12 @@
         return () => clearInterval(wmTimer);
       }, [screen]);
 
-      // Handler Logout Manual & Auto-Logout Idle 15 Menit (Dilengkapi Auto Clear Cache)
-      const handleLogoutStudent = async (reasonMsg = '') => {
-        const currentUserId = loggedInUser?.id_user;
+      // Handler Logout Manual & Auto-Logout Idle 15 Menit
+      const handleLogoutStudent = (reasonMsg = '') => {
         if (screen === 'exam' && activeSesiObj) {
           saveLocalExamProgress({ currentIndex, answers, doubtful, strikes });
         }
-        if (scriptUrl && currentUserId) {
+        if (scriptUrl && loggedInUser?.id_user) {
           fetch(scriptUrl, {
             method: 'POST',
             mode: 'no-cors',
@@ -1079,22 +872,19 @@
             body: JSON.stringify({
               action: 'logout',
               roleType: 'siswa',
-              id: currentUserId
+              id: loggedInUser.id_user
             })
           }).catch(() => {});
         }
-
-        // Jalankan Auto Clear Cache menyeluruh sebelum keluar ke halaman login
-        await clearAppCacheOnLogout(currentUserId);
-
+        try {
+          localStorage.removeItem('skarida_cbt_session');
+        } catch (_) {}
         if (reasonMsg) {
-          triggerToast('Cache Dibersihkan & Sesi Diakhiri', reasonMsg, 'danger');
-        } else {
-          triggerToast('Auto Clear Cache Berhasil', 'Seluruh cache aplikasi telah dibersihkan.');
+          triggerToast('Sesi Diakhiri', reasonMsg, 'danger');
         }
         setTimeout(() => {
-          window.location.replace(`index.html?clear_cache=${Date.now()}`);
-        }, 300);
+          window.location.href = 'index.html';
+        }, 250);
       };
 
       // Sensor Auto-Logout jika tidak aktif selama 15 menit (900 detik)
@@ -1879,8 +1669,8 @@
         if (isSafeRefreshingRef.current) return;
         if (activeSesiObj && activeSesiObj.is_proctoring_active === false) return;
 
-        // Sensor & hitamkan layar soal seketika (0ms langsung ke DOM) agar tangkapan screenshot tidak merekam soal
-        engageInstantHardwareBlackoutDom(type);
+        // Sensor & hitamkan layar soal seketika (0ms) agar tangkapan screenshot tidak merekam soal
+        setIsScreenObscured(true);
 
         const nowMs = Date.now();
         // Debounce 2.5 detik agar 1 kejadian pindah tab tidak memicu blur + visibilitychange bersamaan
@@ -1936,13 +1726,13 @@
         }
       };
 
-      // Handler Peringatan Screenshot (HANYA Memunculkan Peringatan & Sensor Layar 0ms TANPA Menghitung Sebagai Pelanggaran / Strike)
+      // Handler Peringatan Screenshot (HANYA Memunculkan Peringatan & Sensor Layar TANPA Menghitung Sebagai Pelanggaran / Strike)
       const handleTriggerScreenshotWarning = (sourceLabel = 'Percobaan Screenshot / Tangkapan Layar') => {
         if (screen !== 'exam') return;
         if (isSafeRefreshingRef.current) return;
 
-        // Hitamkan & blur-kan layar soal dalam 0ms langsung di DOM sebelum OS menyimpan gambar screenshot
-        engageInstantHardwareBlackoutDom(sourceLabel);
+        // Sensor layar soal seketika agar hasil tangkapan layar tidak menampilkan soal
+        setIsScreenObscured(true);
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText('SKARIDA CBT — DILARANG SCREENSHOT SOAL & JAWABAN').catch(() => {});
@@ -1958,107 +1748,109 @@
       // Cooldown 3 detik pada Popup Peringatan Pelanggaran
       useEffect(() => {
         if (!activeStrikePopup || activeStrikePopup.cooldown <= 0) return;
-        const cdTimer = setInterval(() => {
-          setActiveStrikePopup(prev => {
-            if (!prev) return null;
-            return { ...prev, cooldown: Math.max(0, (prev.cooldown || 0) - 1) };
-          });
+        const cd = setInterval(() => {
+          setActiveStrikePopup(prev => (prev ? { ...prev, cooldown: Math.max(0, (prev.cooldown || 0) - 1) } : null));
         }, 1000);
-        return () => clearInterval(cdTimer);
+        return () => clearInterval(cd);
       }, [activeStrikePopup]);
 
-      // Sensor Proteksi Anti-Kecurangan & Anti-Screenshot Tombol Fisik Handphone (Power + Volume Bawah)
+      // Tombol Refresh Page Aman (Memuat ulang soal, gambar & jawaban saat gangguan internet tanpa reset waktu / tanpa dianggap curang)
+      const handleSafeRefreshPage = async () => {
+        isSafeRefreshingRef.current = true;
+        setIsRefreshingSchedule(true);
+
+        if (screen === 'exam' && activeSesiObj) {
+          saveLocalExamProgress({
+            currentIndex,
+            answers,
+            doubtful,
+            strikes,
+            violationLogs
+          });
+        }
+
+        await loadScheduleAndDatabase();
+        setMediaReloadKey(prev => prev + 1);
+        await enterFullscreenOneScreen();
+
+        setIsRefreshingSchedule(false);
+        triggerToast(
+          'Halaman & Soal Diperbarui!',
+          screen === 'exam'
+            ? `Soal No. ${currentIndex + 1} dan jawaban Anda berhasil dimuat ulang tanpa mereset waktu.`
+            : 'Jadwal sesi & bank soal berhasil disinkronkan ulang.'
+        );
+
+        setTimeout(() => {
+          isSafeRefreshingRef.current = false;
+        }, 2200);
+      };
+
+      // Pasang Sensor Anti-Kecurangan, Anti-Quick-Reply Notifikasi WA & Anti-Screenshot selama screen === 'exam'
       useEffect(() => {
         if (screen !== 'exam') return;
-
-        // Pastikan saat pertama masuk layar soal, mode proteksi blur langsung aktif sampai jari menyentuh layar
-        engageInstantBlurAndBlackout();
+        if (activeSesiObj && activeSesiObj.is_proctoring_active === false) return;
 
         const onVisibilityChange = () => {
           if (document.hidden && !isSafeRefreshingRef.current) {
-            engageInstantHardwareBlackoutDom();
-            handleTriggerViolation('Pindah Tab Browser / Minimize Aplikasi Ujian');
+            setIsScreenObscured(true);
+            handleTriggerViolation('Membuka Notifikasi Pesan (WA/Chat) / Pindah Aplikasi Saat Ujian');
           }
         };
 
         const onWindowBlur = () => {
           if (!isSafeRefreshingRef.current) {
-            engageInstantHardwareBlackoutDom();
+            setIsScreenObscured(true);
+            // Paksa tarik kembali fokus ke jendela ujian agar popup Quick Reply WA tertutup
             setTimeout(() => {
               try { window.focus(); } catch (_) {}
             }, 50);
-            handleTriggerViolation('Membuka / Membalas Popup Notifikasi Chat (WA/Pesan) atau Interupsi Sistem');
+            handleTriggerViolation('Interaksi pada Popup Notifikasi Chat (WA/Pesan) / Floating App di Luar Ruang Ujian');
           }
         };
 
+        // Sensor Anti-Quick-Reply WA (Mendeteksi jika keyboard HP terbuka untuk membalas popup notifikasi WA di luar kolom jawaban Uraian)
         const baseViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const onVisualViewportResize = () => {
           if (isSafeRefreshingRef.current || !window.visualViewport) return;
           const currentVh = window.visualViewport.height;
           const heightDrop = baseViewportHeight - currentVh;
           const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toUpperCase() : '';
-          if (heightDrop > 130 && activeTag !== 'TEXTAREA' && activeTag !== 'INPUT') {
-            engageInstantHardwareBlackoutDom();
+          const isTypingInExamInput = activeTag === 'TEXTAREA' || activeTag === 'INPUT';
+
+          // Jika tinggi viewport menyusut > 130px (keyboard virtual HP muncul untuk membalas chat WA di notifikasi) padahal siswa tidak sedang mengetik di kotak jawaban
+          if (heightDrop > 130 && !isTypingInExamInput) {
+            setIsScreenObscured(true);
+            try {
+              if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+              window.focus();
+            } catch (_) {}
             handleTriggerViolation('Membalas Chat WA / Mengetik pada Popup Notifikasi Pesan Saat Ujian');
           }
         };
 
         const onFullscreenChange = () => {
           if (!document.fullscreenElement && !document.webkitFullscreenElement && !isSafeRefreshingRef.current) {
-            setIsFullscreenLocked(false);
-            engageInstantHardwareBlackoutDom();
+            setIsScreenObscured(true);
             handleTriggerViolation('Keluar dari Mode Layar Penuh (Fullscreen 1 Layar)');
           }
         };
 
-        // Sensor Akselerometer / Guncangan Fisik Bodi HP (Mendeteksi hentakan jari tangan lain saat menekan tombol fisik Power + Volume Bawah sambil 1 jari menahan layar)
-        const onDeviceMotionSensor = (e) => {
-          if (!isFingerCurrentlyDownRef.current || isSafeRefreshingRef.current) return;
-          const acc = e.accelerationIncludingGravity || e.acceleration;
-          if (!acc) return;
-          const ax = Number(acc.x) || 0;
-          const ay = Number(acc.y) || 0;
-          const az = Number(acc.z) || 0;
-          if (!lastAccelRef.current.initialized) {
-            lastAccelRef.current = { x: ax, y: ay, z: az, initialized: true };
-            return;
-          }
-          const jolt =
-            Math.abs(ax - lastAccelRef.current.x) +
-            Math.abs(ay - lastAccelRef.current.y) +
-            Math.abs(az - lastAccelRef.current.z);
-          lastAccelRef.current = { x: ax, y: ay, z: az, initialized: true };
-
-          // Jika terjadi hentakan mekanis pada bodi samping HP saat jari menahan layar (menekan tombol fisik Power + Volume) -> 0ms Blur & Hitam!
-          if (jolt > 4.2) {
-            engageInstantBlurAndBlackout();
-          }
-        };
-
-        // Sensor Sentuhan Layar (TouchStart): Hanya membuka blur jika 1 jari aktif menyentuh layar
+        // Sensor Deteksi Gestur Screenshot 3 Jari (Hanya Peringatan) & Slide Atas / Tarik Menu Bar (Pelanggaran)
         const onTouchStartSensor = (e) => {
-          lastTouchEpochRef.current = Date.now();
-          activateHardwareVolumeButtonTrap();
           if (!e.touches || e.touches.length === 0) return;
 
-          // Jika lebih dari 1 jari menyentuh layar (2 atau 3 jari, atau genggaman tangan lain), langsung blur & hitamkan dalam 0ms!
-          if (e.touches.length >= 2) {
-            engageInstantBlurAndBlackout();
-            if (e.touches.length >= 3) {
-              if (e.cancelable) e.preventDefault();
-              handleTriggerScreenshotWarning('Percobaan Screenshot Gestur 3 Jari di Layar HP');
-            }
+          // Deteksi Gestur Screenshot 3 Jari pada HP Android -> HANYA PERINGATAN (Tanpa tambah pelanggaran)
+          if (e.touches.length >= 3) {
+            if (e.cancelable) e.preventDefault();
+            handleTriggerScreenshotWarning('Percobaan Screenshot Gestur 3 Jari di Layar HP');
             return;
           }
 
           const t = e.touches[0];
-          isFingerCurrentlyDownRef.current = true;
-          lastTouchCoordRef.current = { x: t.clientX, y: t.clientY };
-          keepPrivacyLensClear(680);
-
           const viewH = window.innerHeight || document.documentElement.clientHeight;
-          const isTopZone = t.clientY <= 70;
-          const isBottomZone = t.clientY >= viewH - 55;
+          const isTopZone = t.clientY <= 80;
+          const isBottomZone = t.clientY >= viewH - 65;
           const inScrollableQuestion = Boolean(e.target && e.target.closest && e.target.closest('[data-exam-scroll="true"]'));
 
           touchGestureRef.current = {
@@ -2070,12 +1862,9 @@
         };
 
         const onTouchMoveSensor = (e) => {
-          lastTouchEpochRef.current = Date.now();
           if (!e.touches || e.touches.length === 0) return;
 
-          if (e.touches.length >= 2) {
-            engageInstantBlurAndBlackout();
-          }
+          // Gestur Screenshot Swipe 3 Jari -> HANYA PERINGATAN (Tanpa tambah pelanggaran)
           if (e.touches.length >= 3) {
             if (e.cancelable) e.preventDefault();
             handleTriggerScreenshotWarning('Percobaan Screenshot Swipe 3 Jari di Layar HP');
@@ -2083,145 +1872,59 @@
           }
 
           const t = e.touches[0];
-          const moveDist = Math.hypot(t.clientX - lastTouchCoordRef.current.x, t.clientY - lastTouchCoordRef.current.y);
-          // Hanya perpanjang waktu baca jika jari benar-benar digeser aktif (> 4px)
-          if (moveDist > 4 && e.touches.length === 1) {
-            lastTouchCoordRef.current = { x: t.clientX, y: t.clientY };
-            keepPrivacyLensClear(680);
-          }
-
           const g = touchGestureRef.current;
           const deltaY = t.clientY - g.startY;
           const deltaX = Math.abs(t.clientX - g.startX);
 
-          // 1. Jika peserta menarik panel notifikasi atas (<= 70px)
-          if (g.startY <= 70 && deltaY > 25 && deltaY > deltaX) {
+          // 1. Jika peserta menyentuh area tepi atas (<= 80px, zona munculnya popup notifikasi WA) lalu men-slide
+          if (g.startY <= 80 && Math.abs(deltaY) > 15 && Math.abs(deltaY) > deltaX) {
             if (e.cancelable) e.preventDefault();
-            engageInstantHardwareBlackoutDom();
+            setIsScreenObscured(true);
             handleTriggerViolation('Menarik / Membuka Popup Notifikasi Pesan (WA) di Area Atas Layar');
             return;
           }
 
-          // 2. Jika peserta men-slide ke atas dari tepi bawah untuk membuka navigation bar sistem
-          if (g.inEdgeZone && g.startY >= (window.innerHeight - 55) && deltaY < -40 && Math.abs(deltaY) > deltaX) {
+          // 2. Jika peserta men-slide ke atas (deltaY < -35px) dari tepi bawah atau pada area header/navigasi non-scroll
+          if (g.inEdgeZone && deltaY < -35 && Math.abs(deltaY) > deltaX) {
             if (e.cancelable) e.preventDefault();
-            engageInstantHardwareBlackoutDom();
+            setIsScreenObscured(true);
             handleTriggerViolation('Mencoba Men-slide Layar ke Atas (Swipe-Up Gesture / Membuka Menu Sistem)');
           }
         };
 
-        // Begitu jari diangkat dari layar (0ms) untuk menekan tombol fisik Power + Volume Bawah -> Langsung Blur & Hitam secara sinkron!
-        const onTouchEndSensor = (e) => {
-          lastTouchEpochRef.current = Date.now();
-          if (!e.touches || e.touches.length === 0) {
-            engageInstantBlurAndBlackout();
-          }
-        };
-
-        // Saat tombol fisik Power + Volume Bawah ditekan pada Android/iOS, OS membatalkan sentuhan layar (touchcancel) sebelum menyimpan screenshot!
-        const onTouchCancelSensor = () => {
-          lastTouchEpochRef.current = Date.now();
-          engageInstantHardwareBlackoutDom();
-          handleTriggerScreenshotWarning('Interupsi Tombol Fisik Handphone (Power + Volume Screenshot)');
-        };
-
-        // PENTING: Abaikan event mousemove sintetis di HP (yang sebelumnya membuat layar terbuka 1.8 detik setelah jari dilepas!)
-        const onMouseMoveSensor = (e) => {
-          if (Date.now() - lastTouchEpochRef.current < 3500) return;
-          if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
-          if (navigator.maxTouchPoints && navigator.maxTouchPoints > 0 && !e.buttons) return;
-          keepPrivacyLensClear(900);
-        };
-
-        const onMouseLeaveSensor = () => {
-          engageInstantBlurAndBlackout();
-        };
-
         const onKeyDownSensor = (e) => {
-          const keyName = String(e.key || '');
-          const codeName = String(e.code || '');
-          const keyCodeNum = Number(e.keyCode || e.which || 0);
-          const isHardwareVolumeOrCapture =
-            keyName === 'PrintScreen' ||
-            keyName === 'VolumeDown' ||
-            keyName === 'VolumeUp' ||
-            keyName === 'VolumeMute' ||
-            keyName === 'AudioVolumeDown' ||
-            keyName === 'AudioVolumeUp' ||
-            keyName === 'AudioVolumeMute' ||
-            keyName === 'Power' ||
-            keyName === 'WakeUp' ||
-            codeName === 'AudioVolumeDown' ||
-            codeName === 'AudioVolumeUp' ||
-            codeName === 'VolumeDown' ||
-            codeName === 'VolumeUp' ||
-            keyCodeNum === 44 ||
-            keyCodeNum === 173 ||
-            keyCodeNum === 174 ||
-            keyCodeNum === 175 ||
-            (e.metaKey && e.shiftKey && ['3', '4', '5', 's'].includes(keyName.toLowerCase())) ||
-            (e.ctrlKey && e.shiftKey && ['s'].includes(keyName.toLowerCase()));
+          const isScreenshotCombo =
+            e.key === 'PrintScreen' ||
+            e.key === 'VolumeDown' ||
+            (e.metaKey && e.shiftKey && ['3', '4', '5', 's'].includes(e.key.toLowerCase())) ||
+            (e.ctrlKey && e.shiftKey && ['s'].includes(e.key.toLowerCase()));
 
-          if (isHardwareVolumeOrCapture) {
-            if (e.cancelable) e.preventDefault();
-            engageInstantHardwareBlackoutDom();
-            handleTriggerScreenshotWarning(`Tombol Fisik Handphone / Screenshot (${keyName || codeName || 'Power + Volume'})`);
+          // Jika tombol Screenshot ditekan -> HANYA PERINGATAN TANPA PELANGGARAN
+          if (isScreenshotCombo) {
+            e.preventDefault();
+            handleTriggerScreenshotWarning(`Percobaan Screenshot Layar (${e.key})`);
             return;
           }
 
-          const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toUpperCase() : '';
-          if (activeTag === 'TEXTAREA' || activeTag === 'INPUT') {
-            keepPrivacyLensClear(1200);
-          }
-
           if (
-            keyName === 'F12' ||
-            (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(keyName.toLowerCase())) ||
-            (e.ctrlKey && ['c', 'v', 'x', 'u', 'p', 's'].includes(keyName.toLowerCase())) ||
-            (e.altKey && keyName === 'Tab')
+            e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) ||
+            (e.ctrlKey && ['c', 'v', 'x', 'u', 'p', 's'].includes(e.key.toLowerCase())) ||
+            (e.altKey && e.key === 'Tab')
           ) {
-            if (e.cancelable) e.preventDefault();
-            engageInstantHardwareBlackoutDom();
-            handleTriggerViolation(`Tombol Pintasan Terlarang (${e.ctrlKey ? 'Ctrl+' : ''}${keyName})`);
+            e.preventDefault();
+            setIsScreenObscured(true);
+            handleTriggerViolation(`Tombol Pintasan Terlarang (${e.ctrlKey ? 'Ctrl+' : ''}${e.key})`);
           }
         };
 
         const onKeyUpSensor = (e) => {
-          const keyName = String(e.key || '');
-          const codeName = String(e.code || '');
-          const keyCodeNum = Number(e.keyCode || e.which || 0);
-          if (
-            keyName === 'PrintScreen' ||
-            keyName === 'VolumeDown' ||
-            keyName === 'VolumeUp' ||
-            keyName === 'AudioVolumeDown' ||
-            keyName === 'AudioVolumeUp' ||
-            codeName === 'AudioVolumeDown' ||
-            codeName === 'AudioVolumeUp' ||
-            keyCodeNum === 44 ||
-            keyCodeNum === 174 ||
-            keyCodeNum === 175
-          ) {
-            engageInstantHardwareBlackoutDom();
-            handleTriggerScreenshotWarning('Tombol Fisik Screenshot / Volume Handphone');
+          if (e.key === 'PrintScreen') {
+            handleTriggerScreenshotWarning('Percobaan Screenshot Layar (Tombol PrintScreen)');
           }
         };
-
-        // Detektor Pembekuan Framebuffer OS (SurfaceFlinger stall saat kombo Power + Volume Bawah ditekan)
-        let lastFrameTime = performance.now();
-        let rafId = null;
-        const monitorFrameFreeze = (nowPerf) => {
-          const delta = nowPerf - lastFrameTime;
-          lastFrameTime = nowPerf;
-          if (!isSafeRefreshingRef.current && (delta > 110 || !document.hasFocus() || document.hidden)) {
-            engageInstantBlurAndBlackout();
-          }
-          rafId = requestAnimationFrame(monitorFrameFreeze);
-        };
-        rafId = requestAnimationFrame(monitorFrameFreeze);
 
         const onBeforePrint = () => {
-          engageInstantHardwareBlackoutDom();
           handleTriggerScreenshotWarning('Percobaan Cetak / Simpan Halaman Soal');
         };
 
@@ -2230,57 +1933,40 @@
           handleTriggerViolation('Percobaan Copy-Paste Teks Soal / Jawaban');
         };
 
-        document.addEventListener('visibilitychange', onVisibilityChange, true);
-        window.addEventListener('blur', onWindowBlur, true);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        window.addEventListener('blur', onWindowBlur);
         if (window.visualViewport) {
           window.visualViewport.addEventListener('resize', onVisualViewportResize);
         }
-        document.addEventListener('fullscreenchange', onFullscreenChange, true);
-        window.addEventListener('devicemotion', onDeviceMotionSensor, true);
-        document.addEventListener('touchstart', onTouchStartSensor, { passive: false, capture: true });
-        document.addEventListener('touchmove', onTouchMoveSensor, { passive: false, capture: true });
-        document.addEventListener('touchend', onTouchEndSensor, { passive: true, capture: true });
-        document.addEventListener('touchcancel', onTouchCancelSensor, { passive: true, capture: true });
-        window.addEventListener('mousemove', onMouseMoveSensor, { passive: true });
-        document.addEventListener('mouseleave', onMouseLeaveSensor);
-        window.addEventListener('keydown', onKeyDownSensor, true);
-        document.addEventListener('keydown', onKeyDownSensor, true);
-        window.addEventListener('keyup', onKeyUpSensor, true);
-        document.addEventListener('keyup', onKeyUpSensor, true);
-        window.addEventListener('beforeprint', onBeforePrint, true);
-        document.addEventListener('copy', onCopyPaste, true);
-        document.addEventListener('cut', onCopyPaste, true);
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('touchstart', onTouchStartSensor, { passive: false });
+        document.addEventListener('touchmove', onTouchMoveSensor, { passive: false });
+        window.addEventListener('keydown', onKeyDownSensor);
+        window.addEventListener('keyup', onKeyUpSensor);
+        window.addEventListener('beforeprint', onBeforePrint);
+        document.addEventListener('copy', onCopyPaste);
+        document.addEventListener('cut', onCopyPaste);
 
         return () => {
-          if (rafId) cancelAnimationFrame(rafId);
-          document.removeEventListener('visibilitychange', onVisibilityChange, true);
-          window.removeEventListener('blur', onWindowBlur, true);
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+          window.removeEventListener('blur', onWindowBlur);
           if (window.visualViewport) {
             window.visualViewport.removeEventListener('resize', onVisualViewportResize);
           }
-          document.removeEventListener('fullscreenchange', onFullscreenChange, true);
-          window.removeEventListener('devicemotion', onDeviceMotionSensor, true);
-          document.removeEventListener('touchstart', onTouchStartSensor, { capture: true });
-          document.removeEventListener('touchmove', onTouchMoveSensor, { capture: true });
-          document.removeEventListener('touchend', onTouchEndSensor, { capture: true });
-          document.removeEventListener('touchcancel', onTouchCancelSensor, { capture: true });
-          window.removeEventListener('mousemove', onMouseMoveSensor);
-          document.removeEventListener('mouseleave', onMouseLeaveSensor);
-          window.removeEventListener('keydown', onKeyDownSensor, true);
-          document.removeEventListener('keydown', onKeyDownSensor, true);
-          window.removeEventListener('keyup', onKeyUpSensor, true);
-          document.removeEventListener('keyup', onKeyUpSensor, true);
-          window.removeEventListener('beforeprint', onBeforePrint, true);
-          document.removeEventListener('copy', onCopyPaste, true);
-          document.removeEventListener('cut', onCopyPaste, true);
+          document.removeEventListener('fullscreenchange', onFullscreenChange);
+          document.removeEventListener('touchstart', onTouchStartSensor);
+          document.removeEventListener('touchmove', onTouchMoveSensor);
+          window.removeEventListener('keydown', onKeyDownSensor);
+          window.removeEventListener('keyup', onKeyUpSensor);
+          window.removeEventListener('beforeprint', onBeforePrint);
+          document.removeEventListener('copy', onCopyPaste);
+          document.removeEventListener('cut', onCopyPaste);
         };
       }, [screen, activeSesiObj, strikes, answers, examQuestions]);
 
       const activeQuestion = examQuestions[currentIndex];
       const minSubmitMinutes = activeSesiObj?.minimal_menit_submit || sesiListState[0]?.minimal_menit_submit || 15;
       const canSubmitNow = elapsedMinutes >= minSubmitMinutes;
-      // Apakah area soal harus di-blur pekat & dihitamkan sekarang? (Aktif setiap saat jari tidak sedang menyentuh layar / saat terdeteksi screenshot)
-      const isHeavyBlurActive = isScreenObscured || Boolean(screenshotWarningPopup) || Boolean(activeStrikePopup) || !isTouchHoldingScreen;
 
       return (
         <div className="w-screen h-[100dvh] bg-slate-950 text-slate-100 flex flex-col overflow-hidden select-none relative">
@@ -2296,6 +1982,15 @@
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Sensor Tepi Atas Layar: Menangkap percobaan men-slide atas / menarik menu bar */}
+          {screen === 'exam' && (
+            <div
+              onTouchStart={() => handleTriggerViolation('Menyentuh / Men-slide Tepi Atas Layar (Percobaan Membuka Menu Bar)')}
+              className="absolute top-0 left-0 right-0 h-2.5 z-50 bg-transparent"
+              title="Zona Sensor Anti-Slide Atas"
+            />
           )}
 
           <div className="w-full h-full bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
@@ -2628,42 +2323,14 @@
                 onContextMenu={e => e.preventDefault()}
                 className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden select-none"
               >
-                {/* TIRAI DOM SINKRON 0ms (LANGSUNG MENUTUP LAYAR SEBELUM OS MENANGKAP FRAMEBUFFER TOMBOL FISIK) */}
-                <div
-                  id="skarida-instant-blackout-curtain"
-                  style={{ display: isScreenObscured && !activeStrikePopup && !screenshotWarningPopup ? 'flex' : 'none' }}
-                  className="absolute inset-0 z-40 bg-slate-950 flex-col items-center justify-center p-6 text-center space-y-4"
-                >
-                  <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center">
-                    <EyeOff className="w-8 h-8 text-rose-400" />
-                  </div>
-                  <h3 className="text-base font-black text-white uppercase tracking-wide">
-                    Layar Disensor — Proteksi Anti-Screenshot Aktif
-                  </h3>
-                  <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
-                    Konten soal dan pilihan jawaban ditutup secara otomatis dalam 0ms karena terdeteksi penekanan tombol fisik perangkat atau kehilangan fokus layar.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      releaseInstantHardwareBlackoutDom();
-                      setScreenshotWarningPopup(null);
-                      enterFullscreenOneScreen();
-                    }}
-                    className="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-lg"
-                  >
-                    Tampilkan Kembali Lembar Soal
-                  </button>
-                </div>
-
                 {/* FORENSIC DYNAMIC WATERMARK GRID (ANTI-SCREENSHOT & PELACAKAN FOTO LAYAR) */}
                 <div
                   style={{
                     transform: `rotate(-18deg) translate(${(watermarkShift % 2) * 14 - 7}px, ${Math.floor(watermarkShift / 2) * 12 - 6}px)`
                   }}
-                  className="pointer-events-none absolute -inset-12 z-30 overflow-hidden opacity-[0.16] flex flex-col justify-between transition-transform duration-700"
+                  className="pointer-events-none absolute -inset-12 z-30 overflow-hidden opacity-[0.14] flex flex-col justify-between transition-transform duration-700"
                 >
-                  {Array.from({ length: 9 }).map((_, rowIdx) => (
+                  {Array.from({ length: 8 }).map((_, rowIdx) => (
                     <div key={rowIdx} className="flex items-center justify-around gap-8 whitespace-nowrap">
                       <span className="text-[11px] font-mono font-black text-sky-300 tracking-wider">
                         {loggedInUser.username_nisn} • {String(loggedInUser.nama_lengkap || '').toUpperCase()} • {loggedInUser.kelas}
@@ -2678,6 +2345,32 @@
                   ))}
                 </div>
 
+                {/* TIRAI SENSOR HITAM INSTAN (0ms BLACKOUT CENSORSHIP SAAT PERCOBAAN SCREENSHOT / NOTIFIKASI LUAR) */}
+                {isScreenObscured && !activeStrikePopup && !screenshotWarningPopup && (
+                  <div className="absolute inset-0 z-40 bg-slate-950 flex flex-col items-center justify-center p-6 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center">
+                      <EyeOff className="w-8 h-8 text-rose-400" />
+                    </div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wide">
+                      Layar Disensor — Proteksi Keamanan Ujian
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
+                      Konten soal disembunyikan seketika untuk mencegah tangkapan layar atau interaksi notifikasi luar.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsScreenObscured(false);
+                        setScreenshotWarningPopup(null);
+                        enterFullscreenOneScreen();
+                      }}
+                      className="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-lg"
+                    >
+                      Kembali ke Lembar Soal
+                    </button>
+                  </div>
+                )}
+
                 {/* POPUP PERINGATAN ANTI-SCREENSHOT (TANPA MENGHITUNG SEBAGAI PELANGGARAN / STRIKE) */}
                 {screenshotWarningPopup && !activeStrikePopup && (
                   <div className="absolute inset-0 z-50 p-6 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center">
@@ -2691,7 +2384,7 @@
                       Dilarang Melakukan Screenshot Soal & Jawaban!
                     </h3>
                     <p className="text-xs text-slate-200 max-w-sm mb-3 leading-relaxed">
-                      Sistem mendeteksi: <strong className="text-amber-300">{screenshotWarningPopup.type}</strong>. Layar soal telah disensor otomatis menjadi hitam & blur untuk melindungi kerahasiaan bank soal.
+                      Sistem mendeteksi: <strong className="text-amber-300">{screenshotWarningPopup.type}</strong>. Layar soal telah disensor otomatis untuk melindungi kerahasiaan bank soal.
                     </p>
                     <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 max-w-sm mb-5">
                       Tindakan ini <strong>hanya diberikan peringatan</strong> dan <strong>tidak menambah jumlah pelanggaran Anda</strong>. Silakan kembali melanjutkan pengerjaan soal dengan jujur.
@@ -2700,7 +2393,7 @@
                       type="button"
                       onClick={() => {
                         setScreenshotWarningPopup(null);
-                        releaseInstantHardwareBlackoutDom();
+                        setIsScreenObscured(false);
                         enterFullscreenOneScreen();
                       }}
                       className="w-full max-w-xs py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition"
@@ -2783,31 +2476,31 @@
                       <button
                         type="button"
                         onClick={() => setShowNavDrawer(true)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-extrabold flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold flex items-center gap-1 shadow"
                       >
-                        <LayoutGrid className="w-3 h-3" /> Daftar Nomor
+                        <LayoutGrid className="w-3.5 h-3.5" /> Daftar Nomor
                       </button>
                     </div>
                   </div>
 
-                  {/* Strip Navigasi Nomor Soal Cepat */}
+                  {/* Strip Navigasi Cepat Nomor Soal (Horizontal Scroll) */}
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5">
                     {examQuestions.map((q, idx) => {
+                      const isCurr = idx === currentIndex;
                       const isAns = answers[q.nomor_urut] !== undefined && String(answers[q.nomor_urut]).trim() !== '';
                       const isDbt = Boolean(doubtful[q.nomor_urut]);
-                      const isCur = idx === currentIndex;
                       return (
                         <button
                           key={q.id_soal || q.nomor_urut}
                           type="button"
                           onClick={() => setCurrentIndex(idx)}
-                          className={`min-w-[30px] h-7 px-1.5 rounded-lg font-mono font-bold text-[11px] border shrink-0 transition ${
-                            isCur
+                          className={`min-w-[30px] h-7 px-1.5 rounded-lg font-mono text-[11px] font-extrabold border shrink-0 flex items-center justify-center transition ${
+                            isCurr
                               ? 'ring-2 ring-sky-400 bg-sky-600 text-white border-sky-300'
                               : isDbt
                               ? 'bg-amber-500 text-slate-950 border-amber-400'
                               : isAns
-                              ? 'bg-emerald-600/30 border-emerald-500/50 text-emerald-300'
+                              ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300'
                               : 'bg-slate-950 border-slate-800 text-slate-400'
                           }`}
                         >
@@ -2818,27 +2511,12 @@
                   </div>
                 </div>
 
-                {/* Konten Pertanyaan & Pilihan Jawaban (Otomatis Sangat Blur & Hitam Saat Jari Dilepas untuk Menekan Tombol Fisik Screenshot) */}
+                {/* Konten Pertanyaan & Pilihan Jawaban */}
                 <div
                   key={`question-view-${activeQuestion.nomor_urut}-${mediaReloadKey}`}
                   data-exam-scroll="true"
-                  className="flex-1 overflow-y-auto p-4 space-y-4 z-20 relative"
+                  className="flex-1 overflow-y-auto p-4 space-y-4 z-20"
                 >
-                  {/* OVERLAY LENSA PRIVASI ANTI-SCREENSHOT TOMBOL FISIK (FLOATING TANPA MENGGESER POSISI TOMBOL JAWABAN) */}
-                  <div
-                    id="skarida-privacy-lens-badge"
-                    style={{ display: isHeavyBlurActive && !isScreenObscured && !screenshotWarningPopup && !activeStrikePopup ? 'flex' : 'none' }}
-                    className="pointer-events-none fixed inset-x-4 top-36 z-30 mx-auto max-w-md bg-slate-950/95 border-2 border-amber-500/80 rounded-2xl p-3.5 flex-col items-center text-center shadow-2xl"
-                  >
-                    <div className="flex items-center justify-center gap-2 text-amber-300 font-black text-xs uppercase">
-                      <EyeOff className="w-4 h-4 animate-pulse shrink-0" />
-                      <span>Proteksi Anti-Screenshot Tombol Fisik Aktif (Layar Blur & Hitam)</span>
-                    </div>
-                    <p className="text-[11px] text-slate-200 mt-1 leading-snug">
-                      <strong>Sentuh & geser 1 jari pada layar</strong> untuk membaca soal atau ketuk langsung pilihan jawaban. Saat jari dilepas untuk menekan tombol fisik HP, layar otomatis terkunci menjadi <strong>hitam & sangat blur (0ms)</strong>.
-                    </p>
-                  </div>
-
                   {/* Info Bantuan Gangguan Koneksi & Tombol Muat Ulang Cepat */}
                   <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                     <span className="text-slate-400">
@@ -2853,109 +2531,86 @@
                       <span>Muat Ulang Soal & Jawaban</span>
                     </button>
                   </div>
-                  {/* WRAPPER SOAL & OPSI (MEMILIKI ID DOM SINKRON UNTUK 0ms HARDWARE KEY BLACKOUT) */}
-                  <div
-                    id="skarida-protected-question-box"
-                    style={
-                      isHeavyBlurActive
-                        ? {
-                            filter: 'blur(34px) brightness(0.03) contrast(250%)',
-                            WebkitFilter: 'blur(34px) brightness(0.03) contrast(250%)',
-                            opacity: 0.04,
-                            transition: 'none',
-                            backgroundColor: '#020617'
-                          }
-                        : {
-                            filter: 'none',
-                            WebkitFilter: 'none',
-                            opacity: 1,
-                            transition: 'none'
-                          }
-                    }
-                    className="space-y-4 rounded-2xl"
-                  >
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
-                      <RichMathText text={activeQuestion.teks_pertanyaan} className={`${fontSize} text-white font-medium`} />
-                      {resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal) && (
-                        <div
-                          onClick={() => setZoomedImage(resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal))}
-                          onContextMenu={e => e.preventDefault()}
-                          className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-sky-500/50 transition"
-                        >
-                          <img
-                            src={resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal)}
-                            alt="Gambar Soal"
-                            draggable={false}
-                            onContextMenu={e => e.preventDefault()}
-                            className="max-h-56 mx-auto rounded-lg object-contain pointer-events-none"
-                          />
-                          <div className="text-center text-[10px] text-sky-400 mt-1 flex items-center justify-center gap-1">
-                            <ZoomIn className="w-3 h-3" /> Ketuk gambar untuk memperbesar
-                          </div>
-                        </div>
-                      )}
-                    </div>
 
-                    {activeQuestion.tipe_soal === 'PG' ? (
-                      <div className="space-y-2.5">
-                        {Array.from({ length: activeQuestion.jumlah_opsi || 4 }).map((_, idx) => {
-                          const huruf = String.fromCharCode(65 + idx);
-                          const isSelected = answers[activeQuestion.nomor_urut] === huruf;
-                          const optImgSrc = resolveImageSrc(activeQuestion.gambar_opsi?.[idx], activeQuestion.preview_gambar_opsi?.[idx]);
-                          return (
-                            <button
-                              key={huruf}
-                              type="button"
-                              onClick={() => handleSelectOrTypeAnswer(activeQuestion, huruf)}
-                              className={`w-full text-left p-3.5 rounded-2xl border-2 flex items-start gap-3 transition active:scale-[0.99] ${
-                                isSelected
-                                  ? 'bg-sky-600/20 border-sky-500 text-white font-bold shadow-lg shadow-sky-600/10'
-                                  : 'bg-slate-900 border-slate-800 text-slate-200 hover:border-slate-700'
-                              }`}
-                            >
-                              <span className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 mt-0.5 ${
-                                isSelected ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-300'
-                              }`}>
-                                {huruf}
-                              </span>
-                              <div className="flex-1 min-w-0 space-y-2">
-                                <RichMathText text={activeQuestion.opsi?.[idx] || ''} className={`${fontSize}`} />
-                                {optImgSrc && (
-                                  <img
-                                    src={optImgSrc}
-                                    alt={`Opsi ${huruf}`}
-                                    draggable={false}
-                                    onContextMenu={e => e.preventDefault()}
-                                    className="max-h-36 rounded-xl border border-slate-700 bg-slate-950 p-1 object-contain pointer-events-none"
-                                  />
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-amber-400">Lembar Jawaban Uraian (Essay)</span>
-                          <span className="text-[10px] text-emerald-400">Tersimpan Otomatis</span>
-                        </div>
-                        <textarea
-                          rows={5}
-                          value={answers[activeQuestion.nomor_urut] || ''}
-                          onPaste={e => {
-                            e.preventDefault();
-                            handleTriggerViolation('Percobaan Paste Jawaban pada Kolom Uraian');
-                          }}
-                          onChange={e => {
-                            handleSelectOrTypeAnswer(activeQuestion, e.target.value);
-                          }}
-                          placeholder="Ketik jawaban uraian Anda secara mandiri di sini..."
-                          className={`w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-2xl p-3 text-white outline-none ${fontSize}`}
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
+                    <RichMathText text={activeQuestion.teks_pertanyaan} className={`${fontSize} text-white font-medium`} />
+                    {resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal) && (
+                      <div
+                        onClick={() => setZoomedImage(resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal))}
+                        onContextMenu={e => e.preventDefault()}
+                        className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-sky-500/50 transition"
+                      >
+                        <img
+                          src={resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal)}
+                          alt="Gambar Soal"
+                          draggable={false}
+                          onContextMenu={e => e.preventDefault()}
+                          className="max-h-56 mx-auto rounded-lg object-contain pointer-events-none"
                         />
+                        <div className="text-center text-[10px] text-sky-400 mt-1 flex items-center justify-center gap-1">
+                          <ZoomIn className="w-3 h-3" /> Ketuk gambar untuk memperbesar
+                        </div>
                       </div>
                     )}
                   </div>
+
+                  {activeQuestion.tipe_soal === 'PG' ? (
+                    <div className="space-y-2.5">
+                      {Array.from({ length: activeQuestion.jumlah_opsi || 4 }).map((_, idx) => {
+                        const huruf = String.fromCharCode(65 + idx);
+                        const isSelected = answers[activeQuestion.nomor_urut] === huruf;
+                        const optImgSrc = resolveImageSrc(activeQuestion.gambar_opsi?.[idx], activeQuestion.preview_gambar_opsi?.[idx]);
+                        return (
+                          <button
+                            key={huruf}
+                            type="button"
+                            onClick={() => handleSelectOrTypeAnswer(activeQuestion, huruf)}
+                            className={`w-full text-left p-3.5 rounded-2xl border-2 flex items-start gap-3 transition active:scale-[0.99] ${
+                              isSelected
+                                ? 'bg-sky-600/20 border-sky-500 text-white font-bold shadow-lg shadow-sky-600/10'
+                                : 'bg-slate-900 border-slate-800 text-slate-200 hover:border-slate-700'
+                            }`}
+                          >
+                            <span className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 mt-0.5 ${
+                              isSelected ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-300'
+                            }`}>
+                              {huruf}
+                            </span>
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <RichMathText text={activeQuestion.opsi?.[idx] || ''} className={`${fontSize}`} />
+                              {optImgSrc && (
+                                <img
+                                  src={optImgSrc}
+                                  alt={`Opsi ${huruf}`}
+                                  draggable={false}
+                                  onContextMenu={e => e.preventDefault()}
+                                  className="max-h-36 rounded-xl border border-slate-700 bg-slate-950 p-1 object-contain pointer-events-none"
+                                />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-amber-400">Lembar Jawaban Uraian (Essay)</span>
+                        <span className="text-[10px] text-emerald-400">Tersimpan Otomatis</span>
+                      </div>
+                      <textarea
+                        rows={5}
+                        value={answers[activeQuestion.nomor_urut] || ''}
+                        onPaste={e => {
+                          e.preventDefault();
+                          handleTriggerViolation('Percobaan Paste Jawaban pada Kolom Uraian');
+                        }}
+                        onChange={e => handleSelectOrTypeAnswer(activeQuestion, e.target.value)}
+                        placeholder="Ketik jawaban uraian Anda secara mandiri di sini..."
+                        className={`w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-2xl p-3 text-white outline-none ${fontSize}`}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Navigation Bar Lengkap (Prev, Ragu-Ragu, Daftar Nomor, Next / Kumpul) */}
@@ -3159,8 +2814,12 @@
                       disabled={activeStrikePopup.cooldown > 0}
                       onClick={() => {
                         setActiveStrikePopup(null);
-                        releaseInstantHardwareBlackoutDom();
-                        enterFullscreenOneScreen();
+                        setIsScreenObscured(false);
+                        try {
+                          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen().catch(() => {});
+                          }
+                        } catch (_) {}
                       }}
                       className="w-full py-3.5 rounded-2xl bg-white disabled:bg-slate-700 text-slate-950 disabled:text-slate-400 font-black text-xs transition"
                     >
