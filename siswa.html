@@ -2,7 +2,10 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Dashboard Siswa SKARIDA CBT — SMK Negeri 2 Tegalsari</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -12,7 +15,18 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; overscroll-behavior-y: contain; user-select: none; -webkit-user-select: none; }
+    html, body, #root {
+      width: 100vw;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-x pan-y;
+    }
     .katex { font-size: 1.05em; }
     .rich-math-content b, .rich-math-content strong { font-weight: 800; color: #fff; }
     .rich-math-content i, .rich-math-content em { font-style: italic; }
@@ -525,9 +539,11 @@
     }
 
     function StudentPortalApp() {
-      const [viewportMode, setViewportMode] = useState('frame');
+      const [viewportMode, setViewportMode] = useState('full');
       const [screen, setScreen] = useState('dashboard');
       const [toast, setToast] = useState(null);
+      const [isFullscreenLocked, setIsFullscreenLocked] = useState(false);
+      const [mediaReloadKey, setMediaReloadKey] = useState(0);
       const [scriptUrl] = useState(() => {
         const saved = safeGetStorage('skarida_script_url', '');
         if (saved && saved.trim() !== '') return saved.trim();
@@ -593,6 +609,46 @@
       const lastViolationEpochRef = React.useRef(0);
       const isSubmittingExamRef = React.useRef(false);
       const hasRestoredSessionRef = React.useRef(false);
+      const isSafeRefreshingRef = React.useRef(false);
+      const touchGestureRef = React.useRef({ startY: 0, startX: 0, startTime: 0, inEdgeZone: false });
+
+      // Helper mengaktifkan Fullscreen 1 Layar Penuh & menyembunyikan Menu Bar / Navigation UI
+      const enterFullscreenOneScreen = async () => {
+        try {
+          const docEl = document.documentElement;
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (docEl.requestFullscreen) {
+              await docEl.requestFullscreen({ navigationUI: 'hide' });
+            } else if (docEl.webkitRequestFullscreen) {
+              docEl.webkitRequestFullscreen();
+            } else if (docEl.msRequestFullscreen) {
+              docEl.msRequestFullscreen();
+            }
+          }
+          setIsFullscreenLocked(true);
+        } catch (_) {}
+      };
+
+      // Pantau status Fullscreen & otomatis kunci layar penuh saat interaksi pertama
+      useEffect(() => {
+        const syncFsState = () => {
+          const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+          setIsFullscreenLocked(active);
+        };
+        const autoLockOnFirstTap = () => {
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            enterFullscreenOneScreen();
+          }
+        };
+        document.addEventListener('fullscreenchange', syncFsState);
+        document.addEventListener('webkitfullscreenchange', syncFsState);
+        window.addEventListener('pointerdown', autoLockOnFirstTap, { once: true, passive: true });
+        return () => {
+          document.removeEventListener('fullscreenchange', syncFsState);
+          document.removeEventListener('webkitfullscreenchange', syncFsState);
+          window.removeEventListener('pointerdown', autoLockOnFirstTap);
+        };
+      }, []);
 
       const normalizeRowKeys = (rawRow) => {
         const out = {};
@@ -1321,11 +1377,7 @@
             safeSetStorage(getActivePointerKey(uId), String(sId));
             setScreen('exam');
 
-            try {
-              if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(() => {});
-              }
-            } catch (_) {}
+            enterFullscreenOneScreen();
 
             triggerToast('Melanjutkan Ujian', `Melanjutkan pada Soal No. ${resumeIdx + 1}. Sisa waktu & jawaban sebelumnya telah dipulihkan.`);
             return;
@@ -1412,11 +1464,7 @@
 
         setScreen('exam');
 
-        try {
-          if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(() => {});
-          }
-        } catch (_) {}
+        enterFullscreenOneScreen();
 
         if (scriptUrl) {
           fetch(scriptUrl, {
@@ -1482,6 +1530,7 @@
       // Handler Picu Pelanggaran Anti-Cheat (3-Strike Penalty -> Pelanggaran ke-4 Otomatis Force Submit)
       const handleTriggerViolation = (type) => {
         if (screen !== 'exam') return;
+        if (isSafeRefreshingRef.current) return;
         if (activeSesiObj && activeSesiObj.is_proctoring_active === false) return;
 
         const nowMs = Date.now();
@@ -1547,24 +1596,139 @@
         return () => clearInterval(cd);
       }, [activeStrikePopup]);
 
-      // Pasang Sensor Anti-Kecurangan Real-Time pada Browser / HP Siswa selama screen === 'exam'
+      // Tombol Refresh Page Aman (Memuat ulang soal, gambar & jawaban saat gangguan internet tanpa reset waktu / tanpa dianggap curang)
+      const handleSafeRefreshPage = async () => {
+        isSafeRefreshingRef.current = true;
+        setIsRefreshingSchedule(true);
+
+        if (screen === 'exam' && activeSesiObj) {
+          saveLocalExamProgress({
+            currentIndex,
+            answers,
+            doubtful,
+            strikes,
+            violationLogs
+          });
+        }
+
+        await loadScheduleAndDatabase();
+
+        // Sinkronkan kembali teks soal & gambar terbaru dari bank soal ke lembar soal yang sedang dikerjakan tanpa mengubah urutan acak
+        setSoalBankState(latestBank => {
+          if (Array.isArray(latestBank) && latestBank.length > 0) {
+            setExamQuestions(prevQuestions =>
+              prevQuestions.map(q => {
+                const fresh = latestBank.find(item => String(item.id_soal) === String(q.id_soal));
+                if (!fresh) return q;
+                if (String(q.tipe_soal || 'PG').toUpperCase() === 'PG' && Array.isArray(q.opsi_original_letters)) {
+                  const freshOpsi = q.opsi_original_letters.map(letter => {
+                    const idx = letter.charCodeAt(0) - 65;
+                    return fresh.orig_opsi?.[idx] ?? fresh.opsi?.[idx] ?? '';
+                  });
+                  const freshGbr = q.opsi_original_letters.map(letter => {
+                    const idx = letter.charCodeAt(0) - 65;
+                    return fresh.orig_gambar_opsi?.[idx] ?? fresh.gambar_opsi?.[idx] ?? null;
+                  });
+                  const freshPrev = q.opsi_original_letters.map(letter => {
+                    const idx = letter.charCodeAt(0) - 65;
+                    return fresh.orig_preview_gambar_opsi?.[idx] ?? fresh.preview_gambar_opsi?.[idx] ?? '';
+                  });
+                  return {
+                    ...q,
+                    teks_pertanyaan: fresh.teks_pertanyaan || q.teks_pertanyaan,
+                    file_gambar_soal: fresh.file_gambar_soal || q.file_gambar_soal,
+                    preview_gambar_soal: fresh.preview_gambar_soal || q.preview_gambar_soal,
+                    opsi: freshOpsi,
+                    gambar_opsi: freshGbr,
+                    preview_gambar_opsi: freshPrev
+                  };
+                }
+                return {
+                  ...q,
+                  teks_pertanyaan: fresh.teks_pertanyaan || q.teks_pertanyaan,
+                  file_gambar_soal: fresh.file_gambar_soal || q.file_gambar_soal,
+                  preview_gambar_soal: fresh.preview_gambar_soal || q.preview_gambar_soal
+                };
+              })
+            );
+          }
+          return latestBank;
+        });
+
+        setMediaReloadKey(prev => prev + 1);
+        await enterFullscreenOneScreen();
+        setIsRefreshingSchedule(false);
+
+        triggerToast(
+          'Halaman & Soal Diperbarui!',
+          screen === 'exam'
+            ? `Soal No. ${currentIndex + 1}, gambar, dan jawaban Anda berhasil dimuat ulang tanpa mereset waktu.`
+            : 'Data jadwal dan soal ujian berhasil dimuat ulang dari server.'
+        );
+
+        setTimeout(() => {
+          isSafeRefreshingRef.current = false;
+        }, 2500);
+      };
+
+      // Pasang Sensor Anti-Kecurangan Real-Time (Termasuk Deteksi Slide Atas / Tarik Menu Bar) selama screen === 'exam'
       useEffect(() => {
         if (screen !== 'exam') return;
         if (activeSesiObj && activeSesiObj.is_proctoring_active === false) return;
 
         const onVisibilityChange = () => {
-          if (document.hidden) {
+          if (document.hidden && !isSafeRefreshingRef.current) {
             handleTriggerViolation('Pindah Tab Browser / Membuka Aplikasi Lain (visibilitychange)');
           }
         };
 
         const onWindowBlur = () => {
-          handleTriggerViolation('Keluar Fokus Layar Ujian / Membuka Notifikasi WA / Floating App');
+          if (!isSafeRefreshingRef.current) {
+            handleTriggerViolation('Keluar Fokus Layar Ujian / Membuka Notifikasi WA / Floating App');
+          }
         };
 
         const onFullscreenChange = () => {
-          if (!document.fullscreenElement) {
-            handleTriggerViolation('Keluar dari Mode Layar Penuh (Fullscreen)');
+          if (!document.fullscreenElement && !document.webkitFullscreenElement && !isSafeRefreshingRef.current) {
+            handleTriggerViolation('Keluar dari Mode Layar Penuh (Fullscreen 1 Layar)');
+          }
+        };
+
+        // Sensor Deteksi Slide Atas / Swipe Tepi Atas & Bawah untuk Membuka Menu Bar / Status Bar HP
+        const onTouchStartSensor = (e) => {
+          if (!e.touches || e.touches.length === 0) return;
+          const t = e.touches[0];
+          const viewH = window.innerHeight || document.documentElement.clientHeight;
+          const isTopZone = t.clientY <= 70;
+          const isBottomZone = t.clientY >= viewH - 65;
+          const inScrollableQuestion = Boolean(e.target && e.target.closest && e.target.closest('[data-exam-scroll="true"]'));
+
+          touchGestureRef.current = {
+            startY: t.clientY,
+            startX: t.clientX,
+            startTime: Date.now(),
+            inEdgeZone: isTopZone || isBottomZone || !inScrollableQuestion
+          };
+        };
+
+        const onTouchMoveSensor = (e) => {
+          if (!e.touches || e.touches.length === 0) return;
+          const t = e.touches[0];
+          const g = touchGestureRef.current;
+          const deltaY = t.clientY - g.startY;
+          const deltaX = Math.abs(t.clientX - g.startX);
+
+          // 1. Jika peserta menyentuh area tepi atas (<= 70px) lalu men-slide ke bawah atau ke atas (membuka menu/notifikasi bar)
+          if (g.startY <= 70 && Math.abs(deltaY) > 18 && Math.abs(deltaY) > deltaX) {
+            if (e.cancelable) e.preventDefault();
+            handleTriggerViolation('Mencoba Men-slide Area Atas / Membuka Menu Bar & Panel Notifikasi');
+            return;
+          }
+
+          // 2. Jika peserta men-slide ke atas (deltaY < -35px) dari tepi bawah atau pada area header/navigasi non-scroll
+          if (g.inEdgeZone && deltaY < -35 && Math.abs(deltaY) > deltaX) {
+            if (e.cancelable) e.preventDefault();
+            handleTriggerViolation('Mencoba Men-slide Layar ke Atas (Swipe-Up Gesture / Membuka Menu Sistem)');
           }
         };
 
@@ -1583,6 +1747,8 @@
         document.addEventListener('visibilitychange', onVisibilityChange);
         window.addEventListener('blur', onWindowBlur);
         document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('touchstart', onTouchStartSensor, { passive: true });
+        document.addEventListener('touchmove', onTouchMoveSensor, { passive: false });
         window.addEventListener('keydown', onKeyDownSensor);
         document.addEventListener('copy', onCopyPaste);
         document.addEventListener('cut', onCopyPaste);
@@ -1591,6 +1757,8 @@
           document.removeEventListener('visibilitychange', onVisibilityChange);
           window.removeEventListener('blur', onWindowBlur);
           document.removeEventListener('fullscreenchange', onFullscreenChange);
+          document.removeEventListener('touchstart', onTouchStartSensor);
+          document.removeEventListener('touchmove', onTouchMoveSensor);
           window.removeEventListener('keydown', onKeyDownSensor);
           document.removeEventListener('copy', onCopyPaste);
           document.removeEventListener('cut', onCopyPaste);
@@ -1602,7 +1770,7 @@
       const canSubmitNow = elapsedMinutes >= minSubmitMinutes;
 
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-start py-0 sm:py-6 px-0 sm:px-4">
+        <div className="w-screen h-[100dvh] bg-slate-950 text-slate-100 flex flex-col overflow-hidden select-none relative">
           {toast && (
             <div className="fixed bottom-5 right-5 z-50 max-w-xs animate-bounce">
               <div className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md text-xs ${
@@ -1617,37 +1785,56 @@
             </div>
           )}
 
-          {/* Switcher Ukuran Layar HP */}
-          <div className="hidden sm:flex items-center justify-between gap-4 w-full max-w-md mb-3 bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-2xl text-xs">
-            <span className="text-slate-300 font-bold flex items-center gap-1.5">
-              <Smartphone className="w-4 h-4 text-sky-400" /> Mode Preview Siswa:
-            </span>
-            <div className="flex gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button onClick={() => setViewportMode('frame')} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewportMode === 'frame' ? 'bg-sky-600 text-white' : 'text-slate-400'}`}>
-                Ukuran HP (412px)
-              </button>
-              <button onClick={() => setViewportMode('full')} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewportMode === 'full' ? 'bg-sky-600 text-white' : 'text-slate-400'}`}>
-                Layar Penuh
-              </button>
-            </div>
-          </div>
+          {/* Sensor Tepi Atas Layar: Menangkap percobaan men-slide atas / menarik menu bar */}
+          {screen === 'exam' && (
+            <div
+              onTouchStart={() => handleTriggerViolation('Menyentuh / Men-slide Tepi Atas Layar (Percobaan Membuka Menu Bar)')}
+              className="absolute top-0 left-0 right-0 h-2.5 z-50 bg-transparent"
+              title="Zona Sensor Anti-Slide Atas"
+            />
+          )}
 
-          <div className={`w-full bg-slate-900 text-slate-100 flex flex-col relative overflow-hidden shadow-2xl transition-all ${
-            viewportMode === 'frame'
-              ? 'sm:max-w-[420px] sm:min-h-[780px] sm:rounded-[38px] sm:border-[7px] sm:border-slate-800 min-h-screen'
-              : 'max-w-3xl min-h-[calc(100vh-48px)] sm:rounded-3xl sm:border sm:border-slate-800'
-          }`}>
-            {/* Status Bar HP + Indikator Auto-Logout Idle 15 Menit */}
-            <div className="bg-slate-950 px-5 py-2 flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800">
+          <div className="w-full h-full bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
+            {/* Bar Status Ringkas Fullscreen 1 Layar + Tombol Refresh Halaman & Kunci Fullscreen */}
+            <div className="bg-slate-950 px-3 sm:px-5 py-1.5 flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/90 shrink-0 z-30">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-200">SKARIDA-CBT</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-mono" title="Otomatis logout jika tidak aktif selama 15 menit">
+                <span className="font-black text-sky-400 tracking-tight">SKARIDA CBT</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-mono">
                   Idle: {Math.floor(idleSecondsLeft / 60)}m {idleSecondsLeft % 60}s
                 </span>
               </div>
-              <span className="font-mono text-[10px] text-emerald-400 flex items-center gap-1.5">
-                <Wifi className="w-3.5 h-3.5" /> {clockWibStr}
-              </span>
+
+              <div className="flex items-center gap-1.5">
+                {/* Tombol Refresh Page untuk Gangguan Internet */}
+                <button
+                  type="button"
+                  onClick={handleSafeRefreshPage}
+                  className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/30 font-extrabold text-[10px] flex items-center gap-1 transition"
+                  title="Muat ulang soal, gambar & jawaban jika terjadi gangguan internet (Aman tanpa reset waktu)"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshingSchedule ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshingSchedule ? 'Memuat Ulang...' : 'Refresh Halaman'}</span>
+                </button>
+
+                {/* Tombol Kunci Fullscreen 1 Layar (Menyembunyikan Menu Bar Browser/HP) */}
+                <button
+                  type="button"
+                  onClick={enterFullscreenOneScreen}
+                  className={`px-2.5 py-1 rounded-lg font-extrabold text-[10px] flex items-center gap-1 border transition ${
+                    isFullscreenLocked
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                      : 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse'
+                  }`}
+                  title="Sembunyikan Menu Bar Browser & Kunci Layar Penuh"
+                >
+                  <Maximize2 className="w-3 h-3" />
+                  <span>{isFullscreenLocked ? '1 Layar Penuh Aktif' : 'Kunci Fullscreen'}</span>
+                </button>
+
+                <span className="hidden sm:inline-flex font-mono text-[10px] text-emerald-400 items-center gap-1 ml-1">
+                  <Wifi className="w-3 h-3" /> {clockWibStr}
+                </span>
+              </div>
             </div>
 
             {/* 1. DASHBOARD JADWAL SISWA */}
@@ -1940,6 +2127,15 @@
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSafeRefreshPage}
+                      className="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/40 text-[10px] font-extrabold flex items-center gap-1 transition"
+                      title="Refresh soal & gambar jika tidak ter-load sempurna karena gangguan sinyal"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isRefreshingSchedule ? 'animate-spin' : ''}`} />
+                      <span className="hidden xs:inline">Refresh Soal</span>
+                    </button>
                     <span className={`px-2 py-1 rounded-lg text-[10px] font-extrabold border ${
                       strikes === 0
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
@@ -2028,7 +2224,26 @@
                 </div>
 
                 {/* Konten Pertanyaan & Pilihan Jawaban */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 z-20">
+                <div
+                  key={`question-view-${activeQuestion.nomor_urut}-${mediaReloadKey}`}
+                  data-exam-scroll="true"
+                  className="flex-1 overflow-y-auto p-4 space-y-4 z-20"
+                >
+                  {/* Info Bantuan Gangguan Koneksi & Tombol Muat Ulang Cepat */}
+                  <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="text-slate-400">
+                      Soal atau gambar belum tampil sempurna karena sinyal?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSafeRefreshPage}
+                      className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/30 font-extrabold text-[10px] flex items-center gap-1 transition"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isRefreshingSchedule ? 'animate-spin' : ''}`} />
+                      <span>Muat Ulang Soal & Jawaban</span>
+                    </button>
+                  </div>
+
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
                     <RichMathText text={activeQuestion.teks_pertanyaan} className={`${fontSize} text-white font-medium`} />
                     {resolveImageSrc(activeQuestion.file_gambar_soal, activeQuestion.preview_gambar_soal) && (
