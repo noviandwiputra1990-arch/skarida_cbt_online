@@ -151,93 +151,16 @@
       );
     }
 
-    const INITIAL_MASTER_UJIAN = [
-      { id_ujian: 1, nama_ujian: 'Penilaian Tengah Semester (PTS) Ganjil', kode: 'PTS-GJL', status: 'Aktif' },
-      { id_ujian: 2, nama_ujian: 'Penilaian Akhir Semester (PAS) Ganjil', kode: 'PAS-GJL', status: 'Aktif' },
-      { id_ujian: 3, nama_ujian: 'Ujian Sekolah (USP) Kejuruan', kode: 'USP-KJR', status: 'Draft' },
-      { id_ujian: 4, nama_ujian: 'Kuis Harian & Evaluasi Bab', kode: 'KUIS', status: 'Aktif' },
-    ];
+    // Seluruh state awal dikosongkan (tanpa data dummy) dan langsung dimuat dari Database Google Sheets
+    const INITIAL_MASTER_UJIAN = [];
+    const INITIAL_MASTER_JURUSAN = [];
+    const INITIAL_MASTER_KELAS = [];
+    const INITIAL_USERS = [];
+    const INITIAL_STAFF_USERS = [];
+    const INITIAL_PAKET = [];
+    const INITIAL_SOAL = [];
 
-    const INITIAL_MASTER_JURUSAN = [
-      { id_jurusan: 1, kode_jurusan: 'DPIB', nama_jurusan: 'Desain Pemodelan dan Informasi Bangunan' },
-      { id_jurusan: 2, kode_jurusan: 'KKBT', nama_jurusan: 'Kriya Kreatif Batik dan Tekstil' },
-      { id_jurusan: 3, kode_jurusan: 'TKJ', nama_jurusan: 'Teknik Komputer dan Jaringan' },
-      { id_jurusan: 4, kode_jurusan: 'TKR', nama_jurusan: 'Teknik Kendaraan Ringan Otomotif' },
-    ];
-
-    const INITIAL_MASTER_KELAS = [
-      { id_kelas: 1, id_jurusan: 1, kode_jurusan: 'DPIB', nama_kelas: 'X DPIB 1', tingkat: 'X' },
-      { id_kelas: 2, id_jurusan: 1, kode_jurusan: 'DPIB', nama_kelas: 'X DPIB 2', tingkat: 'X' },
-      { id_kelas: 3, id_jurusan: 2, kode_jurusan: 'KKBT', nama_kelas: 'XI KKBT 1', tingkat: 'XI' },
-      { id_kelas: 4, id_jurusan: 3, kode_jurusan: 'TKJ', nama_kelas: 'XII TKJ 1', tingkat: 'XII' },
-      { id_kelas: 5, id_jurusan: 4, kode_jurusan: 'TKR', nama_kelas: 'X TKR 1', tingkat: 'X' },
-    ];
-
-    const INITIAL_USERS = [
-      { id_user: 1001, username_nisn: '0084921011', nama_lengkap: 'Ahmad Fauzi Pratama', agama: 'Islam', tingkat: 'X', kelas: 'X DPIB 1', jurusan: 'DPIB', password_plain: 'SKR-7741', session_token: 'sess_99281a' },
-      { id_user: 1002, username_nisn: '0084921012', nama_lengkap: 'Bunga Citra Lestari', agama: 'Kristen', tingkat: 'X', kelas: 'X DPIB 1', jurusan: 'DPIB', password_plain: 'SKR-8829', session_token: 'sess_44102b' },
-      { id_user: 1003, username_nisn: '0084921013', nama_lengkap: 'Dimas Wahyu Saputra', agama: 'Islam', tingkat: 'X', kelas: 'X DPIB 2', jurusan: 'DPIB', password_plain: 'SKR-3190', session_token: 'sess_77123c' },
-      { id_user: 1004, username_nisn: '0073819021', nama_lengkap: 'Ni Luh Eka Putri', agama: 'Hindu', tingkat: 'XI', kelas: 'XI KKBT 1', jurusan: 'KKBT', password_plain: 'SKR-5512', session_token: 'sess_88310f' },
-      { id_user: 1005, username_nisn: '0062910442', nama_lengkap: 'Fransiskus Rio', agama: 'Katolik', tingkat: 'XII', kelas: 'XII TKJ 1', jurusan: 'TKJ', password_plain: 'SKR-9104', session_token: null },
-    ];
-
-    const INITIAL_STAFF_USERS = [
-      { id_staff: 1, username_nip: 'admin.skarida', nama_lengkap: 'Administrator Server CBT', role: 'admin', mapel_jabatan: 'Koordinator Proktor & Server', password_plain: 'ADMIN-2026', status: 'Aktif' },
-      { id_staff: 2, username_nip: '19840512201001', nama_lengkap: 'Ir. Hendra Wijaya, S.T.', role: 'guru', mapel_jabatan: 'Dasar Konstruksi Bangunan (DPIB)', password_plain: 'GURU-DPIB', status: 'Aktif' },
-      { id_staff: 3, username_nip: '19891104201503', nama_lengkap: 'H. Miftahul Huda, S.Ag.', role: 'guru', mapel_jabatan: 'Pendidikan Agama Islam', password_plain: 'GURU-PAI', status: 'Aktif' },
-    ];
-
-    const INITIAL_PAKET = [
-      { id_paket: 201, mata_pelajaran: 'Dasar Konstruksi Bangunan', tingkat: 'X', kelas: 'X', jurusan: 'DPIB', mode_sasaran: 'jurusan', custom_items: [], guru: 'Ir. Hendra Wijaya, S.T.' },
-      { id_paket: 202, mata_pelajaran: 'Matematika Umum', tingkat: 'XII', kelas: 'XII', jurusan: 'Semua Jurusan', mode_sasaran: 'semua', custom_items: [], guru: 'Tim Guru Matematika' },
-      { id_paket: 203, mata_pelajaran: 'Projek IPAS Terapan', tingkat: 'X', kelas: 'X', jurusan: 'X DPIB 1, X TKR 1', mode_sasaran: 'custom_kelas', custom_items: ['X DPIB 1', 'X TKR 1'], guru: 'Dra. Ratna Sari' },
-    ];
-
-    const INITIAL_SOAL = [
-      {
-        id_soal: 301, id_paket: 201, tipe_soal: 'PG', kategori_kognitif: 'LoTS', bobot_skor: 40,
-        teks_pertanyaan: 'Alat ukur tanah optik yang berfungsi utama untuk mengukur beda tinggi antara dua titik secara mendatar adalah...',
-        file_gambar_soal: 'waterpass_diagram.jpg', preview_gambar_soal: '', jumlah_opsi: 5,
-        opsi: ['Waterpass (Penyipat Datar)', 'Kompas Geologi', 'Pita Ukur Baja', 'Unting-unting (Plumb Bob)', 'Klinometer Manual'],
-        gambar_opsi: ['opsi_waterpass.png', null, null, null, null],
-        preview_gambar_opsi: ['', '', '', '', ''],
-        kunci_jawaban: 'A'
-      },
-      {
-        id_soal: 302, id_paket: 201, tipe_soal: 'PG', kategori_kognitif: 'MoTS', bobot_skor: 35,
-        teks_pertanyaan: 'Sebuah balok beton sederhana dengan bentang $L$ menahan beban merata $q$. Berapakah momen lentur maksimum yang terjadi di tengah bentang?',
-        file_gambar_soal: null, preview_gambar_soal: '', jumlah_opsi: 4,
-        opsi: ['$\\frac{1}{8} qL^{2}$', '$\\frac{1}{4} qL^{2}$', '$\\frac{1}{12} qL^{2}$', '$\\frac{1}{2} qL^{2}$', ''],
-        gambar_opsi: [null, null, null, null, null],
-        preview_gambar_opsi: ['', '', '', '', ''],
-        kunci_jawaban: 'A'
-      },
-      {
-        id_soal: 305, id_paket: 201, tipe_soal: 'PG', kategori_kognitif: 'HoTS', bobot_skor: 25,
-        teks_pertanyaan: 'Campuran beton mutu struktural menggunakan perbandingan berat semen : pasir : kerikil = $1 : 2 : 3$ dengan faktor air semen ($FAS$) $0,5$. Jika berat semen yang digunakan adalah $40\\text{ kg}$, maka volume air yang dibutuhkan adalah...',
-        file_gambar_soal: null, preview_gambar_soal: '', jumlah_opsi: 5,
-        opsi: ['$15\\text{ liter}$', '$20\\text{ liter}$', '$25\\text{ liter}$', '$30\\text{ liter}$', '$40\\text{ liter}$'],
-        gambar_opsi: [null, null, null, null, null],
-        preview_gambar_opsi: ['', '', '', '', ''],
-        kunci_jawaban: 'B'
-      },
-      {
-        id_soal: 303, id_paket: 201, tipe_soal: 'Uraian', kategori_kognitif: 'HoTS', bobot_skor: 15,
-        teks_pertanyaan: 'Analisislah mengapa kegagalan retak geser (diagonal tension crack) pada balok beton bertulang jauh lebih berbahaya dibandingkan retak lentur, serta bagaimana cara mencegahnya!',
-        file_gambar_soal: 'retak_geser_balok.png', preview_gambar_soal: '', jumlah_opsi: 0,
-        opsi: [], gambar_opsi: [], preview_gambar_opsi: [],
-        kunci_jawaban: 'Retak geser bersifat getas (brittle) dan tiba-tiba tanpa peringatan lendutan. Dicegah dengan memasang tulangan sengkang (begel) jarak rapat di tumpuan.'
-      },
-      {
-        id_soal: 304, id_paket: 201, tipe_soal: 'Uraian', kategori_kognitif: 'MoTS', bobot_skor: 10,
-        teks_pertanyaan: 'Jelaskan fungsi utama tulangan pokok memanjang dan tulangan sengkang (begel) pada struktur kolom beton bertulang!',
-        file_gambar_soal: null, preview_gambar_soal: '', jumlah_opsi: 0,
-        opsi: [], gambar_opsi: [], preview_gambar_opsi: [],
-        kunci_jawaban: 'Tulangan pokok menahan gaya aksial tekan dan momen lentur, sedangkan sengkang menahan gaya geser serta mencegah tekuk (buckling) pada tulangan pokok.'
-      }
-    ];
-
-    // Generator Ilustrasi Diagram SVG Otomatis jika nama file gambar berupa nama file contoh/lokal
+    // Generator Ilustrasi Diagram SVG Otomatis jika nama file gambar berupa nama file lokal
     const buildSvgDiagramPlaceholder = (filename) => {
       const cleanName = String(filename || 'Gambar Soal').replace(/[<>&"']/g, '');
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="520" height="240" viewBox="0 0 520 240">
@@ -285,102 +208,8 @@
       return s;
     };
 
-    const INITIAL_SESI = [
-      {
-        id_sesi: 501, id_ujian: 1, id_paket: 201,
-        nama_sesi_spesifik: 'PTS Dasar Konstruksi Bangunan - Sesi Pagi',
-        waktu_buka: '2026-11-18T07:30', waktu_tutup: '2026-11-18T11:30',
-        durasi_menit: 90, minimal_menit_submit: 45,
-        is_proctoring_active: true, enable_watermark: true, is_acak_soal: true, require_token: true, token: 'SKR-892A',
-        limit_soal_pg: 25, limit_soal_uraian: 5, peserta_ids: [1001, 1002, 1003]
-      }
-    ];
-
-    const INITIAL_PESERTA_UJIAN = [
-      {
-        id_peserta_ujian: 9001, id_sesi: 501, id_user: 1001,
-        waktu_mulai: '2026-11-18 07:32:10', waktu_selesai: '2026-11-18 08:48:22',
-        sisa_detik: 0, status_pengerjaan: 'selesai', jumlah_pelanggaran: 0,
-        jml_terjawab: 5, jml_benar_pg: 3, jml_salah_pg: 0,
-        skor_pg: 100, skor_uraian: 22,
-        jawaban_pg_siswa: {
-          301: 'A', // LoTS (Benar -> 40/40)
-          302: 'A', // MoTS (Benar -> 35/35)
-          305: 'B'  // HoTS (Benar -> 25/25)
-        },
-        jawaban_uraian_teks: 'Retak geser terjadi secara mendadak akibat tegangan tarik diagonal.',
-        detail_uraian: {
-          303: {
-            jawaban: 'Retak geser terjadi secara mendadak (getas) akibat tegangan tarik diagonal yang melampaui kapasitas beton. Cara mencegahnya dengan memasang sengkang rapat di area tumpuan.',
-            skor: 14 // HoTS (14/15)
-          },
-          304: {
-            jawaban: 'Tulangan pokok berfungsi menahan beban tekan dan lentur utama, sedangkan begel mengikat tulangan pokok dan menahan gaya geser.',
-            skor: 8  // MoTS (8/10)
-          }
-        },
-        user_agent_device: 'Android 14 • Chrome Mobile',
-        log_pelanggaran: []
-      },
-      {
-        id_peserta_ujian: 9002, id_sesi: 501, id_user: 1002,
-        waktu_mulai: '2026-11-18 07:35:00', waktu_selesai: null,
-        sisa_detik: 1840, status_pengerjaan: 'sedang_mengerjakan', jumlah_pelanggaran: 2,
-        jml_terjawab: 5, jml_benar_pg: 2, jml_salah_pg: 1,
-        skor_pg: 75, skor_uraian: 12,
-        jawaban_pg_siswa: {
-          301: 'A', // LoTS (Benar -> 40/40)
-          302: 'A', // MoTS (Benar -> 35/35)
-          305: 'C'  // HoTS (Salah -> 0/25)
-        },
-        jawaban_uraian_teks: 'Karena beban geser pada tumpuan terlalu besar sehingga balok patah miring.',
-        detail_uraian: {
-          303: {
-            jawaban: 'Karena beban geser pada tumpuan terlalu besar sehingga balok patah miring. Harus diberi tulangan sengkang.',
-            skor: 12
-          },
-          304: {
-            jawaban: 'Tulangan pokok untuk kekuatan kolom, begel untuk pengikat.',
-            skor: 0
-          }
-        },
-        user_agent_device: 'iOS 17.5 • Safari Mobile',
-        log_pelanggaran: [
-          { id_log: 1, jenis_pelanggaran: 'Background App / Buka Notifikasi WA (>3 dtk)', waktu_kejadian: '07:55:12' },
-          { id_log: 2, jenis_pelanggaran: 'Split-Screen / Perubahan Resolusi Layar HP', waktu_kejadian: '08:10:44' }
-        ]
-      },
-      {
-        id_peserta_ujian: 9003, id_sesi: 501, id_user: 1003,
-        waktu_mulai: '2026-11-18 07:31:05', waktu_selesai: '2026-11-18 08:04:19',
-        sisa_detik: 0, status_pengerjaan: 'dihentikan_sistem', jumlah_pelanggaran: 4,
-        jml_terjawab: 5, jml_benar_pg: 1, jml_salah_pg: 2,
-        skor_pg: 40, skor_uraian: 8,
-        jawaban_pg_siswa: {
-          301: 'A', // LoTS (Benar -> 40/40)
-          302: 'B', // MoTS (Salah -> 0/35)
-          305: 'D'  // HoTS (Salah -> 0/25)
-        },
-        jawaban_uraian_teks: 'Retak pada balok karena kelebihan muatan.',
-        detail_uraian: {
-          303: {
-            jawaban: 'Retak pada balok karena kelebihan muatan di atasnya.',
-            skor: 5
-          },
-          304: {
-            jawaban: 'Untuk memperkuat beton kolom.',
-            skor: 3
-          }
-        },
-        user_agent_device: 'Android 13 • Chrome Mobile',
-        log_pelanggaran: [
-          { id_log: 3, jenis_pelanggaran: 'Pindah Tab Browser (visibilitychange)', waktu_kejadian: '07:42:01' },
-          { id_log: 4, jenis_pelanggaran: 'Split-Screen / Floating Calculator App', waktu_kejadian: '07:50:18' },
-          { id_log: 5, jenis_pelanggaran: 'Keluar Mode Fullscreen (Peringatan Terakhir)', waktu_kejadian: '07:58:30' },
-          { id_log: 6, jenis_pelanggaran: 'Pindah Tab Ke-4 -> Auto Force Submit Dieksekusi', waktu_kejadian: '08:04:19' }
-        ]
-      }
-    ];
+    const INITIAL_SESI = [];
+    const INITIAL_PESERTA_UJIAN = [];
 
     const TINGKAT_LIST = ['X', 'XI', 'XII'];
     const AGAMA_LIST = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
@@ -1452,7 +1281,7 @@
           const raw = safeGetStorage(key, '');
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) return parsed;
           }
         } catch (_) {}
         return fallbackData;
@@ -1507,13 +1336,13 @@
           const json = await res.json();
           if (json.status === 'success' && json.data) {
             const d = json.data;
-            if (Array.isArray(d.master_ujian) && d.master_ujian.length > 0) {
+            if (Array.isArray(d.master_ujian)) {
               setMasterUjian(d.master_ujian.map(u => ({ ...u, nama_ujian: String(u.nama_ujian || ''), kode: String(u.kode_ujian || u.kode || '') })));
             }
-            if (Array.isArray(d.master_jurusan) && d.master_jurusan.length > 0) {
+            if (Array.isArray(d.master_jurusan)) {
               setMasterJurusan(d.master_jurusan.map(j => ({ ...j, kode_jurusan: String(j.kode_jurusan || ''), nama_jurusan: String(j.nama_jurusan || '') })));
             }
-            if (Array.isArray(d.master_kelas) && d.master_kelas.length > 0) {
+            if (Array.isArray(d.master_kelas)) {
               setMasterKelas(d.master_kelas.map(k => ({
                 ...k,
                 kode_jurusan: String(k.kode_jurusan || ''),
@@ -1521,7 +1350,7 @@
                 tingkat: String(k.tingkat || inferTingkatFromKelas(k.nama_kelas, 'X'))
               })));
             }
-            if (Array.isArray(d.users_peserta) && d.users_peserta.length > 0) {
+            if (Array.isArray(d.users_peserta)) {
               setUsers(d.users_peserta.map(u => ({
                 ...u,
                 username_nisn: String(u.username_nisn || ''),
@@ -1533,10 +1362,10 @@
                 password_plain: String(u.password_plain || '')
               })));
             }
-            if (Array.isArray(d.users_staff) && d.users_staff.length > 0) {
+            if (Array.isArray(d.users_staff)) {
               setStaffUsers(d.users_staff.map(st => ({ ...st, username_nip: String(st.username_nip || ''), nama_lengkap: String(st.nama_lengkap || ''), role: String(st.role || 'guru'), mapel_jabatan: String(st.mapel_jabatan || ''), password_plain: String(st.password_plain || ''), status: String(st.status || 'Aktif') })));
             }
-            if (Array.isArray(d.paket_soal) && d.paket_soal.length > 0) {
+            if (Array.isArray(d.paket_soal)) {
               setPaketSoal(d.paket_soal.map(p => ({
                 ...p,
                 mata_pelajaran: String(p.mata_pelajaran || ''),
@@ -1546,7 +1375,7 @@
                 guru: String(p.nama_guru || p.guru || '')
               })));
             }
-            if (Array.isArray(d.master_soal) && d.master_soal.length > 0) {
+            if (Array.isArray(d.master_soal)) {
               setMasterSoal(d.master_soal.map(s => {
                 const rawOpsi = Array.isArray(s.opsi)
                   ? s.opsi
@@ -1575,7 +1404,7 @@
                 };
               }));
             }
-            if (Array.isArray(d.sesi_ujian) && d.sesi_ujian.length > 0) {
+            if (Array.isArray(d.sesi_ujian)) {
               setSesiUjian(d.sesi_ujian.map(s => {
                 let parsedIds = [];
                 try { parsedIds = JSON.parse(s.peserta_ids_json || '[]'); } catch (_) {}
@@ -1587,8 +1416,8 @@
                 return {
                   ...s,
                   nama_sesi_spesifik: String(s.nama_sesi_spesifik || ''),
-                  waktu_buka: String(s.waktu_buka || '2026-11-16T07:30'),
-                  waktu_tutup: String(s.waktu_tutup || '2026-11-16T09:30'),
+                  waktu_buka: String(s.waktu_buka || ''),
+                  waktu_tutup: String(s.waktu_tutup || ''),
                   zona_waktu: String(s.zona_waktu || 'WIB'),
                   durasi_menit: Number(s.durasi_menit) || 60,
                   minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
@@ -1596,14 +1425,14 @@
                   is_proctoring_active: parseBool(s.is_proctoring_active, true),
                   enable_watermark: parseBool(s.enable_watermark, true),
                   require_token: parseBool(s.require_token, true),
-                  token: String(s.token || 'SKR-892A'),
+                  token: String(s.token || ''),
                   limit_soal_pg: Number(s.limit_soal_pg) || 25,
                   limit_soal_uraian: Number(s.limit_soal_uraian) || 5,
                   peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
                 };
               }));
             }
-            if (Array.isArray(d.peserta_ujian) && d.peserta_ujian.length > 0) {
+            if (Array.isArray(d.peserta_ujian)) {
               const logsAll = Array.isArray(d.log_pelanggaran) ? d.log_pelanggaran : [];
               const jawabanAll = Array.isArray(d.jawaban_siswa) ? d.jawaban_siswa : [];
               setPesertaUjian(d.peserta_ujian.map(pu => {
@@ -1614,11 +1443,17 @@
                     : JSON.parse(pu.detail_skor_uraian_json || '{}');
                 } catch (_) {}
 
-                // Hubungkan baris jawaban_siswa dari Google Sheets ke objek peserta_ujian
+                let parsedPgMap = {};
+                try {
+                  parsedPgMap = typeof pu.jawaban_pg_siswa === 'object' && pu.jawaban_pg_siswa !== null
+                    ? pu.jawaban_pg_siswa
+                    : JSON.parse(pu.jawaban_pg_siswa_json || '{}');
+                } catch (_) {}
+
                 const jawabanPesertaRows = jawabanAll.filter(
                   j => String(j.id_peserta_ujian) === String(pu.id_peserta_ujian)
                 );
-                const pgMapFromSheet = { ...(pu.jawaban_pg_siswa || {}) };
+                const pgMapFromSheet = { ...parsedPgMap };
                 jawabanPesertaRows.forEach(jRow => {
                   const idSoalKey = jRow.id_soal;
                   if (!idSoalKey) return;
@@ -1651,10 +1486,10 @@
                 };
               }));
             }
-            if (!silent) triggerToast('Tersinkronisasi', 'Data berhasil dimuat dari Google Sheets.');
+            if (!silent) triggerToast('Tersinkronisasi', 'Data real berhasil dimuat dari Google Sheets.');
           }
         } catch (err) {
-          if (!silent) triggerToast('Mode Lokal', 'Menggunakan penyimpanan state lokal.', 'warning');
+          if (!silent) triggerToast('Gagal Memuat Database', 'Periksa koneksi internet atau URL Google Apps Script.', 'warning');
         }
         setIsSyncing(false);
       };
@@ -2538,34 +2373,19 @@
         });
       };
 
-      // Buka Modal Preview Jawaban Soal PG Peserta (Review per Butir Soal PG)
+      // Buka Modal Preview Jawaban Soal PG Peserta (Review per Butir Soal PG sesuai Data Real Database)
       const openPreviewJawabanPGModal = (pu) => {
         const m = getPesertaReportMetrics(pu);
         const soalPaketPG = masterSoal.filter(
           s => String(s.id_paket) === String(m.sesi?.id_paket) && s.tipe_soal === 'PG'
         );
-        const listPG = soalPaketPG.length > 0
-          ? soalPaketPG
-          : masterSoal.filter(s => s.tipe_soal === 'PG');
+        const listPG = soalPaketPG;
 
         const savedPgMap = pu.jawaban_pg_siswa || {};
         const itemsReview = listPG.map((soal, idx) => {
           const kunci = String(soal.kunci_jawaban || 'A').trim().toUpperCase();
           const jmlOpsi = Number(soal.jumlah_opsi) || 5;
-          let jawabanPeserta = savedPgMap[soal.id_soal];
-
-          if (!jawabanPeserta) {
-            if (pu.status_pengerjaan === 'belum') {
-              jawabanPeserta = '';
-            } else if (String(pu.id_peserta_ujian) === '9001') {
-              // Simulasi realistis peserta 9001: mayoritas benar, 1 soal salah untuk contoh review guru
-              jawabanPeserta = idx === 2 ? 'C' : kunci;
-            } else if (String(pu.id_peserta_ujian) === '9002') {
-              jawabanPeserta = idx % 2 === 0 ? kunci : (kunci === 'A' ? 'B' : 'A');
-            } else {
-              jawabanPeserta = idx === 0 ? kunci : (kunci === 'A' ? 'D' : 'A');
-            }
-          }
+          const jawabanPeserta = String(savedPgMap[soal.id_soal] || '').trim().toUpperCase();
 
           const isAnswered = Boolean(jawabanPeserta);
           const isCorrect = isAnswered && jawabanPeserta === kunci;
@@ -3195,6 +3015,27 @@
                 <div className="space-y-6">
                   <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-end gap-3 justify-between">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Mata Pelajaran</label>
+                        <select value={ccFilterMapel} onChange={e => { setCcFilterMapel(e.target.value); setCcFilterSesi('ACTIVE_RUNNING'); }} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                          <option value="ALL">Semua Mata Pelajaran</option>
+                          {[...new Set(paketSoal.map(p => p.mata_pelajaran))].map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-violet-400 mb-1">Filter Jenjang (Tingkat)</label>
+                        <select value={ccFilterTingkat} onChange={e => { setCcFilterTingkat(e.target.value); setCcFilterSesi('ACTIVE_RUNNING'); }} className="w-full bg-slate-950 border border-violet-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold">
+                          <option value="ALL">Semua Jenjang (X, XI, XII)</option>
+                          {TINGKAT_LIST.map(t => <option key={t} value={t}>Jenjang Kelas {t}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-sky-400 mb-1">Filter Jurusan</label>
+                        <select value={ccFilterJurusan} onChange={e => { setCcFilterJurusan(e.target.value); setCcFilterSesi('ACTIVE_RUNNING'); }} className="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold">
+                          <option value="ALL">Semua Jurusan</option>
+                          {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan} — {j.nama_jurusan}</option>)}
+                        </select>
+                      </div>
                       <div>
                         <label className="block text-[10px] font-bold uppercase text-emerald-400 mb-1">Filter Sesi Ujian (Default: Sesi Berjalan)</label>
                         <select value={ccFilterSesi} onChange={e => setCcFilterSesi(e.target.value)} className="w-full bg-slate-950 border border-emerald-500/40 rounded-xl px-3 py-2 text-xs text-white font-semibold">
@@ -4641,21 +4482,10 @@
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          setMasterUjian(INITIAL_MASTER_UJIAN);
-                          setMasterJurusan(INITIAL_MASTER_JURUSAN);
-                          setMasterKelas(INITIAL_MASTER_KELAS);
-                          setStaffUsers(INITIAL_STAFF_USERS);
-                          setUsers(INITIAL_USERS);
-                          setPaketSoal(INITIAL_PAKET);
-                          setMasterSoal(INITIAL_SOAL);
-                          setSesiUjian(INITIAL_SESI);
-                          setPesertaUjian(INITIAL_PESERTA_UJIAN);
-                          triggerToast('Data Contoh Dipulihkan', 'Seluruh tabel berhasil diisi kembali dengan data pratinjau awal.');
-                        }}
+                        onClick={() => fetchAllFromSheets(false)}
                         className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-extrabold flex items-center gap-1.5 transition"
                       >
-                        <RefreshCw className="w-3.5 h-3.5" /> Pulihkan Data Contoh (Demo)
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} /> Sinkronkan Data Real dari Google Sheets
                       </button>
                       <button
                         type="button"
