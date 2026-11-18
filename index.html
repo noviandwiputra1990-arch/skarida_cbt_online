@@ -39,13 +39,45 @@
       } catch (_) {}
     };
 
+    const LUCIDE_ICON_PATHS = {
+      ShieldAlert: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      ShieldCheck: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+      Lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      AlertTriangle: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      CheckCircle2: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+      Clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      Smartphone: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+      UserCheck: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+      KeyRound: '<path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/>',
+      Eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+      EyeOff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+      Wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>',
+      GraduationCap: '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+      ArrowRight: '<line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+      LogOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+      MonitorCheck: '<path d="m9 10 2 2 4-4"/><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M12 17v4"/><path d="M8 21h8"/>',
+      Database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>',
+      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      ExternalLink: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>'
+    };
+
     const LucideIcons = new Proxy({}, {
-      get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...rest}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v4l2 2" />
-        </svg>
-      )
+      get: (_, prop) => ({ className = 'w-4 h-4', ...rest }) => {
+        const rawSvg = LUCIDE_ICON_PATHS[prop] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/>';
+        return (
+          <svg
+            className={`inline-block shrink-0 ${className}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            dangerouslySetInnerHTML={{ __html: rawSvg }}
+            {...rest}
+          />
+        );
+      }
     });
     const {
       ShieldAlert, Lock, AlertTriangle, CheckCircle2, Clock, Smartphone,
@@ -99,18 +131,6 @@
         />
       );
     }
-
-    const DEMO_SISWA = [
-      { id_user: 1001, username: '0084921011', nama: 'Ahmad Fauzi Pratama', role: 'siswa', kelas: 'X DPIB 1', jurusan: 'DPIB', agama: 'Islam', pass: 'SKR-7741', session_token: 'sess_99281a' },
-      { id_user: 1002, username: '0084921012', nama: 'Bunga Citra Lestari', role: 'siswa', kelas: 'X DPIB 1', jurusan: 'DPIB', agama: 'Kristen', pass: 'SKR-8829', session_token: 'sess_44102b' },
-      { id_user: 1004, username: '0073819021', nama: 'Ni Luh Eka Putri', role: 'siswa', kelas: 'XI KKBT 1', jurusan: 'KKBT', agama: 'Hindu', pass: 'SKR-5512', session_token: null },
-    ];
-
-    const DEMO_STAFF = [
-      { id_user: 1, username: 'admin.skarida', nama: 'Administrator Server CBT', role: 'admin', jabatan: 'Superadmin & Proktor Utama', pass: 'ADMIN-2026', session_token: 'adm_001' },
-      { id_user: 2, username: '19840512201001', nama: 'Ir. Hendra Wijaya, S.T.', role: 'guru', jabatan: 'Guru Produktif DPIB', pass: 'GURU-DPIB', session_token: 'gru_201' },
-      { id_user: 3, username: '19891104201503', nama: 'H. Miftahul Huda, S.Ag.', role: 'guru', jabatan: 'Guru Pendidikan Agama Islam', pass: 'GURU-PAI', session_token: null },
-    ];
 
     function IndexLoginPortal() {
       const [loginRoleTab, setLoginRoleTab] = useState('siswa');
@@ -217,23 +237,33 @@
           }
 
           try {
-            const resGet = await fetch(`${scriptUrl}?action=initAll`, { redirect: 'follow' });
+            const resGet = await fetch(`${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}action=initAll&_ts=${Date.now()}`, { redirect: 'follow' });
             const jsonGet = await resGet.json();
             if (jsonGet && jsonGet.status === 'success' && jsonGet.data) {
+              const normalizeRow = (raw) => {
+                const out = {};
+                if (!raw || typeof raw !== 'object') return out;
+                Object.keys(raw).forEach(k => {
+                  out[k] = raw[k];
+                  out[String(k).trim().toLowerCase().replace(/\s+/g, '_')] = raw[k];
+                });
+                return out;
+              };
               if (loginRoleTab === 'siswa') {
-                const listSiswa = jsonGet.data.users_peserta || [];
-                const foundSiswa = listSiswa.find(u =>
-                  (String(u.username_nisn).trim() === inputUser || normalizeId(u.username_nisn) === normalizeId(inputUser)) &&
-                  String(u.password_plain).trim() === inputPass
-                );
+                const listSiswa = (jsonGet.data.users_peserta || []).map(normalizeRow);
+                const foundSiswa = listSiswa.find(u => {
+                  const dbNisn = String(u.username_nisn || u.nisn || u.username || '').trim().replace(/^'/, '');
+                  const dbPass = String(u.password_plain || u.password || u.password_opsional || '').trim();
+                  return (dbNisn === inputUser || normalizeId(dbNisn) === normalizeId(inputUser)) && dbPass === inputPass;
+                });
                 if (foundSiswa) {
                   completeLoginAndRedirect({
-                    id_user: foundSiswa.id_user,
-                    username: foundSiswa.username_nisn,
-                    nama: foundSiswa.nama_lengkap,
+                    id_user: foundSiswa.id_user || foundSiswa.id,
+                    username: String(foundSiswa.username_nisn || foundSiswa.nisn || '').replace(/^'/, ''),
+                    nama: foundSiswa.nama_lengkap || foundSiswa.nama,
                     role: 'siswa',
                     kelas: foundSiswa.kelas || '-',
-                    jurusan: foundSiswa.jurusan || '-',
+                    jurusan: foundSiswa.jurusan || foundSiswa.kode_jurusan || '-',
                     agama: foundSiswa.agama || '-',
                     targetFile: 'siswa.html',
                     loginTimestamp: serverTime
@@ -241,18 +271,19 @@
                   return;
                 }
               } else {
-                const listStaff = jsonGet.data.users_staff || [];
-                const foundStaff = listStaff.find(st =>
-                  (String(st.username_nip).trim().toLowerCase() === inputUser.toLowerCase() || normalizeId(st.username_nip) === normalizeId(inputUser)) &&
-                  String(st.password_plain).trim() === inputPass
-                );
+                const listStaff = (jsonGet.data.users_staff || []).map(normalizeRow);
+                const foundStaff = listStaff.find(st => {
+                  const dbNip = String(st.username_nip || st.username || st.nip || '').trim().replace(/^'/, '');
+                  const dbPass = String(st.password_plain || st.password || '').trim();
+                  return (dbNip.toLowerCase() === inputUser.toLowerCase() || normalizeId(dbNip) === normalizeId(inputUser)) && dbPass === inputPass;
+                });
                 if (foundStaff) {
                   completeLoginAndRedirect({
-                    id_user: foundStaff.id_staff,
-                    username: foundStaff.username_nip,
-                    nama: foundStaff.nama_lengkap,
+                    id_user: foundStaff.id_staff || foundStaff.id,
+                    username: String(foundStaff.username_nip || foundStaff.username || '').replace(/^'/, ''),
+                    nama: foundStaff.nama_lengkap || foundStaff.nama,
                     role: foundStaff.role || 'admin',
-                    jabatan: foundStaff.mapel_jabatan || 'Admin / Guru',
+                    jabatan: foundStaff.mapel_jabatan || foundStaff.jabatan || 'Admin / Guru',
                     targetFile: 'admin.html',
                     loginTimestamp: serverTime
                   });
@@ -261,42 +292,59 @@
               }
             }
           } catch (_) {
-            // Lanjutkan ke fallback data bawaan
+            // Lanjutkan ke pengecekan cache database lokal
           }
         }
 
-        // 2. Fallback Data Bawaan (Jika Sheet belum diisi atau dijalankan di lingkungan Preview)
-        if (loginRoleTab === 'siswa') {
-          const found = DEMO_SISWA.find(s =>
-            (s.username === inputUser || normalizeId(s.username) === normalizeId(inputUser)) &&
-            s.pass === inputPass
-          );
-          if (!found) {
-            setErrorMsg('NISN atau Password tidak sesuai! Periksa kembali kredensial Anda.');
-            setIsSubmitting(false);
-            return;
+        // 2. Fallback ke Cache Database Real yang tersimpan di Browser (Tanpa Data Dummy)
+        try {
+          if (loginRoleTab === 'siswa') {
+            const cachedUsers = JSON.parse(safeGetStorage('skarida_db_users', '[]'));
+            const foundSiswa = cachedUsers.find(u =>
+              (String(u.username_nisn).trim() === inputUser || normalizeId(u.username_nisn) === normalizeId(inputUser)) &&
+              String(u.password_plain).trim() === inputPass
+            );
+            if (foundSiswa) {
+              completeLoginAndRedirect({
+                id_user: foundSiswa.id_user,
+                username: foundSiswa.username_nisn,
+                nama: foundSiswa.nama_lengkap,
+                role: 'siswa',
+                kelas: foundSiswa.kelas || '-',
+                jurusan: foundSiswa.jurusan || '-',
+                agama: foundSiswa.agama || '-',
+                targetFile: 'siswa.html',
+                loginTimestamp: serverTime
+              });
+              return;
+            }
+          } else {
+            const cachedStaff = JSON.parse(safeGetStorage('skarida_db_staff', '[]'));
+            const foundStaff = cachedStaff.find(st =>
+              String(st.username_nip).trim().toLowerCase() === inputUser.toLowerCase() &&
+              String(st.password_plain).trim() === inputPass
+            );
+            if (foundStaff) {
+              completeLoginAndRedirect({
+                id_user: foundStaff.id_staff,
+                username: foundStaff.username_nip,
+                nama: foundStaff.nama_lengkap,
+                role: foundStaff.role || 'admin',
+                jabatan: foundStaff.mapel_jabatan || 'Admin / Guru',
+                targetFile: 'admin.html',
+                loginTimestamp: serverTime
+              });
+              return;
+            }
           }
-          completeLoginAndRedirect({
-            ...found,
-            targetFile: 'siswa.html',
-            loginTimestamp: serverTime
-          });
-        } else {
-          const found = DEMO_STAFF.find(st =>
-            st.username.toLowerCase() === inputUser.toLowerCase() &&
-            st.pass === inputPass
-          );
-          if (!found) {
-            setErrorMsg('Username/NIP atau Password Admin/Guru tidak sesuai!');
-            setIsSubmitting(false);
-            return;
-          }
-          completeLoginAndRedirect({
-            ...found,
-            targetFile: 'admin.html',
-            loginTimestamp: serverTime
-          });
-        }
+        } catch (_) {}
+
+        setErrorMsg(
+          loginRoleTab === 'siswa'
+            ? 'NISN atau Password tidak ditemukan pada database Google Sheets (`users_peserta`)!'
+            : 'Username/NIP atau Password tidak ditemukan pada database Google Sheets (`users_staff`)!'
+        );
+        setIsSubmitting(false);
       };
 
       return (
