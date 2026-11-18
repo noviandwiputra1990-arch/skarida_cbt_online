@@ -1363,183 +1363,313 @@
         try {
           await fetch(scriptUrl, {
             method: 'POST',
-            mode: 'no-cors',
             credentials: 'omit',
             redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
           });
         } catch (_) {
-          // Tangani secara senyap jika diblokir CORS sandbox agar tidak memicu CONSOLE_ERROR
+          try {
+            await fetch(scriptUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              credentials: 'omit',
+              redirect: 'follow',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(payload)
+            });
+          } catch (_err) {}
         }
       };
 
+      // Helper pembacaan field yang toleran terhadap huruf besar/kecil atau nama kolom alternatif di Google Sheets
+      const normalizeRowKeys = (rawRow) => {
+        const out = {};
+        if (!rawRow || typeof rawRow !== 'object') return out;
+        Object.keys(rawRow).forEach(k => {
+          const val = rawRow[k];
+          out[k] = val;
+          const cleanKey = String(k).trim().toLowerCase().replace(/\s+/g, '_');
+          if (out[cleanKey] === undefined || out[cleanKey] === '') {
+            out[cleanKey] = val;
+          }
+        });
+        return out;
+      };
+
+      const isRowNotEmpty = (rowObj) => {
+        if (!rowObj || typeof rowObj !== 'object') return false;
+        return Object.values(rowObj).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+      };
+
+      const [dbConnStatus, setDbConnStatus] = useState('connecting'); // 'connecting' | 'connected' | 'error'
+
       const fetchAllFromSheets = async (silent = false) => {
-        if (!scriptUrl) return;
+        const activeUrl = (scriptUrl && scriptUrl.trim() !== '') ? scriptUrl.trim() : DEFAULT_SCRIPT_URL;
+        if (!activeUrl) return;
         setIsSyncing(true);
+        setDbConnStatus('connecting');
         try {
-          const res = await fetch(`${scriptUrl}?action=initAll`, {
-            method: 'GET',
-            credentials: 'omit',
-            redirect: 'follow'
-          });
-          const json = await res.json();
-          if (json.status === 'success' && json.data) {
+          let json = null;
+          try {
+            const res = await fetch(`${activeUrl}${activeUrl.includes('?') ? '&' : '?'}action=initAll&_ts=${Date.now()}`, {
+              method: 'GET',
+              redirect: 'follow'
+            });
+            json = await res.json();
+          } catch (_getErr) {
+            // Fallback via POST jika GET terhalang cache/redirect browser
+            const resPost = await fetch(activeUrl, {
+              method: 'POST',
+              redirect: 'follow',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'initAll' })
+            });
+            json = await resPost.json();
+          }
+
+          if (json && json.status === 'success' && json.data) {
+            setDbConnStatus('connected');
             const d = json.data;
             if (Array.isArray(d.master_ujian)) {
-              setMasterUjian(d.master_ujian.map(u => ({ ...u, nama_ujian: String(u.nama_ujian || ''), kode: String(u.kode_ujian || u.kode || '') })));
+              setMasterUjian(
+                d.master_ujian.filter(isRowNotEmpty).map((raw, idx) => {
+                  const u = normalizeRowKeys(raw);
+                  return {
+                    ...u,
+                    id_ujian: u.id_ujian || u.id || idx + 1,
+                    nama_ujian: String(u.nama_ujian || u.nama || ''),
+                    kode: String(u.kode_ujian || u.kode || ''),
+                    kode_ujian: String(u.kode_ujian || u.kode || ''),
+                    status: String(u.status || 'Aktif')
+                  };
+                })
+              );
             }
             if (Array.isArray(d.master_jurusan)) {
-              setMasterJurusan(d.master_jurusan.map(j => ({ ...j, kode_jurusan: String(j.kode_jurusan || ''), nama_jurusan: String(j.nama_jurusan || '') })));
+              setMasterJurusan(
+                d.master_jurusan.filter(isRowNotEmpty).map((raw, idx) => {
+                  const j = normalizeRowKeys(raw);
+                  return {
+                    ...j,
+                    id_jurusan: j.id_jurusan || j.id || idx + 1,
+                    kode_jurusan: String(j.kode_jurusan || j.kode || '').trim(),
+                    nama_jurusan: String(j.nama_jurusan || j.nama || '').trim()
+                  };
+                })
+              );
             }
             if (Array.isArray(d.master_kelas)) {
-              setMasterKelas(d.master_kelas.map(k => ({
-                ...k,
-                kode_jurusan: String(k.kode_jurusan || ''),
-                nama_kelas: String(k.nama_kelas || ''),
-                tingkat: String(k.tingkat || inferTingkatFromKelas(k.nama_kelas, 'X'))
-              })));
+              setMasterKelas(
+                d.master_kelas.filter(isRowNotEmpty).map((raw, idx) => {
+                  const k = normalizeRowKeys(raw);
+                  const nmKelas = String(k.nama_kelas || k.kelas || '').trim();
+                  return {
+                    ...k,
+                    id_kelas: k.id_kelas || k.id || idx + 1,
+                    kode_jurusan: String(k.kode_jurusan || k.jurusan || '').trim(),
+                    nama_kelas: nmKelas,
+                    tingkat: String(k.tingkat || inferTingkatFromKelas(nmKelas, 'X')).trim().toUpperCase()
+                  };
+                })
+              );
             }
             if (Array.isArray(d.users_peserta)) {
-              setUsers(d.users_peserta.map(u => ({
-                ...u,
-                username_nisn: String(u.username_nisn || ''),
-                nama_lengkap: String(u.nama_lengkap || ''),
-                agama: String(u.agama || 'Islam'),
-                kelas: String(u.kelas || ''),
-                tingkat: String(u.tingkat || inferTingkatFromKelas(u.kelas, 'X')),
-                jurusan: String(u.jurusan || ''),
-                password_plain: String(u.password_plain || '')
-              })));
+              setUsers(
+                d.users_peserta.filter(isRowNotEmpty).map((raw, idx) => {
+                  const u = normalizeRowKeys(raw);
+                  const kls = String(u.kelas || u.nama_kelas || '').trim();
+                  return {
+                    ...u,
+                    id_user: u.id_user || u.id || u.no || idx + 1001,
+                    username_nisn: String(u.username_nisn || u.nisn || u.username || '').trim().replace(/^'/, ''),
+                    nama_lengkap: String(u.nama_lengkap || u.nama || u.nama_siswa || '').trim(),
+                    agama: String(u.agama || 'Islam').trim(),
+                    kelas: kls,
+                    tingkat: String(u.tingkat || inferTingkatFromKelas(kls, 'X')).trim().toUpperCase(),
+                    jurusan: String(u.jurusan || u.kode_jurusan || '').trim().toUpperCase(),
+                    password_plain: String(u.password_plain || u.password || u.password_opsional || '').trim(),
+                    session_token: String(u.session_token || '')
+                  };
+                })
+              );
             }
             if (Array.isArray(d.users_staff)) {
-              setStaffUsers(d.users_staff.map(st => ({ ...st, username_nip: String(st.username_nip || ''), nama_lengkap: String(st.nama_lengkap || ''), role: String(st.role || 'guru'), mapel_jabatan: String(st.mapel_jabatan || ''), password_plain: String(st.password_plain || ''), status: String(st.status || 'Aktif') })));
+              setStaffUsers(
+                d.users_staff.filter(isRowNotEmpty).map((raw, idx) => {
+                  const st = normalizeRowKeys(raw);
+                  return {
+                    ...st,
+                    id_staff: st.id_staff || st.id || idx + 1,
+                    username_nip: String(st.username_nip || st.username || st.nip || '').trim().replace(/^'/, ''),
+                    nama_lengkap: String(st.nama_lengkap || st.nama || '').trim(),
+                    role: String(st.role || 'guru').trim().toLowerCase(),
+                    mapel_jabatan: String(st.mapel_jabatan || st.jabatan || st.mapel || '').trim(),
+                    password_plain: String(st.password_plain || st.password || '').trim(),
+                    status: String(st.status || 'Aktif').trim()
+                  };
+                })
+              );
             }
             if (Array.isArray(d.paket_soal)) {
-              setPaketSoal(d.paket_soal.map(p => ({
-                ...p,
-                mata_pelajaran: String(p.mata_pelajaran || ''),
-                tingkat: String(p.tingkat || p.kelas || 'X'),
-                kelas: String(p.kelas || p.tingkat || 'X'),
-                jurusan: String(p.jurusan || 'Semua Jurusan'),
-                guru: String(p.nama_guru || p.guru || '')
-              })));
+              setPaketSoal(
+                d.paket_soal.filter(isRowNotEmpty).map((raw, idx) => {
+                  const p = normalizeRowKeys(raw);
+                  let parsedCustom = [];
+                  try {
+                    parsedCustom = Array.isArray(p.custom_items)
+                      ? p.custom_items
+                      : JSON.parse(p.custom_items || '[]');
+                  } catch (_) {}
+                  return {
+                    ...p,
+                    id_paket: p.id_paket || p.id || idx + 201,
+                    mata_pelajaran: String(p.mata_pelajaran || p.mapel || '').trim(),
+                    tingkat: String(p.tingkat || p.kelas || 'X').trim().toUpperCase(),
+                    kelas: String(p.kelas || p.tingkat || 'X').trim().toUpperCase(),
+                    jurusan: String(p.jurusan || 'Semua Jurusan').trim(),
+                    guru: String(p.nama_guru || p.guru || '').trim(),
+                    nama_guru: String(p.nama_guru || p.guru || '').trim(),
+                    custom_items: parsedCustom
+                  };
+                })
+              );
             }
             if (Array.isArray(d.master_soal)) {
-              setMasterSoal(d.master_soal.map(s => {
-                const rawOpsi = Array.isArray(s.opsi)
-                  ? s.opsi
-                  : [String(s.opsi_a ?? ''), String(s.opsi_b ?? ''), String(s.opsi_c ?? ''), String(s.opsi_d ?? ''), String(s.opsi_e ?? '')];
-                const rawGbrOpsi = Array.isArray(s.gambar_opsi)
-                  ? s.gambar_opsi
-                  : [s.gambar_a || null, s.gambar_b || null, s.gambar_c || null, s.gambar_d || null, s.gambar_e || null];
-                const rawPrevOpsi = Array.isArray(s.preview_gambar_opsi)
-                  ? s.preview_gambar_opsi
-                  : rawGbrOpsi.map(g => (String(g || '').startsWith('data:image') || String(g || '').startsWith('http')) ? String(g) : '');
-                const mainFile = s.file_gambar_soal || null;
-                const mainPrev = s.preview_gambar_soal || ((String(mainFile || '').startsWith('data:image') || String(mainFile || '').startsWith('http')) ? String(mainFile) : '');
+              setMasterSoal(
+                d.master_soal.filter(isRowNotEmpty).map((raw, idx) => {
+                  const s = normalizeRowKeys(raw);
+                  const rawOpsi = Array.isArray(s.opsi)
+                    ? s.opsi
+                    : [String(s.opsi_a ?? ''), String(s.opsi_b ?? ''), String(s.opsi_c ?? ''), String(s.opsi_d ?? ''), String(s.opsi_e ?? '')];
+                  const rawGbrOpsi = Array.isArray(s.gambar_opsi)
+                    ? s.gambar_opsi
+                    : [s.gambar_a || s.gambar_opsi_a || null, s.gambar_b || s.gambar_opsi_b || null, s.gambar_c || s.gambar_opsi_c || null, s.gambar_d || s.gambar_opsi_d || null, s.gambar_e || s.gambar_opsi_e || null];
+                  const rawPrevOpsi = Array.isArray(s.preview_gambar_opsi)
+                    ? s.preview_gambar_opsi
+                    : rawGbrOpsi.map(g => (String(g || '').startsWith('data:image') || String(g || '').startsWith('http')) ? String(g) : '');
+                  const mainFile = s.file_gambar_soal || null;
+                  const mainPrev = s.preview_gambar_soal || ((String(mainFile || '').startsWith('data:image') || String(mainFile || '').startsWith('http')) ? String(mainFile) : '');
 
-                return {
-                  ...s,
-                  tipe_soal: String(s.tipe_soal || 'PG'),
-                  kategori_kognitif: String(s.kategori_kognitif || 'MoTS'),
-                  teks_pertanyaan: String(s.teks_pertanyaan || ''),
-                  jumlah_opsi: Number(s.jumlah_opsi) || 0,
-                  bobot_skor: Number(s.bobot_skor) || 0,
-                  file_gambar_soal: mainFile ? getCleanFileName(mainFile, 'gambar_soal.jpg') : (mainPrev ? 'gambar_soal.jpg' : null),
-                  preview_gambar_soal: mainPrev,
-                  opsi: rawOpsi,
-                  gambar_opsi: rawGbrOpsi.map((g, i) => g ? getCleanFileName(g, `opsi_${String.fromCharCode(65 + i)}.jpg`) : (rawPrevOpsi[i] ? `opsi_${String.fromCharCode(65 + i)}.jpg` : null)),
-                  preview_gambar_opsi: rawPrevOpsi
-                };
-              }));
+                  return {
+                    ...s,
+                    id_soal: s.id_soal || s.id || idx + 301,
+                    id_paket: s.id_paket,
+                    tipe_soal: String(s.tipe_soal || 'PG').trim(),
+                    kategori_kognitif: String(s.kategori_kognitif || 'MoTS').trim(),
+                    teks_pertanyaan: String(s.teks_pertanyaan || '').trim(),
+                    jumlah_opsi: Number(s.jumlah_opsi) || (String(s.tipe_soal || 'PG').toUpperCase() === 'PG' ? 5 : 0),
+                    bobot_skor: Number(s.bobot_skor) || 2,
+                    file_gambar_soal: mainFile ? getCleanFileName(mainFile, 'gambar_soal.jpg') : (mainPrev ? 'gambar_soal.jpg' : null),
+                    preview_gambar_soal: mainPrev,
+                    opsi: rawOpsi,
+                    gambar_opsi: rawGbrOpsi.map((g, i) => g ? getCleanFileName(g, `opsi_${String.fromCharCode(65 + i)}.jpg`) : (rawPrevOpsi[i] ? `opsi_${String.fromCharCode(65 + i)}.jpg` : null)),
+                    preview_gambar_opsi: rawPrevOpsi,
+                    kunci_jawaban: String(s.kunci_jawaban || 'A').trim()
+                  };
+                })
+              );
             }
             if (Array.isArray(d.sesi_ujian)) {
-              setSesiUjian(d.sesi_ujian.map(s => {
-                let parsedIds = [];
-                try { parsedIds = JSON.parse(s.peserta_ids_json || '[]'); } catch (_) {}
-                const parseBool = (val, def = true) => {
-                  if (val === undefined || val === null || val === '') return def;
-                  if (typeof val === 'boolean') return val;
-                  return String(val).toUpperCase() === 'TRUE' || String(val) === '1';
-                };
-                return {
-                  ...s,
-                  nama_sesi_spesifik: String(s.nama_sesi_spesifik || ''),
-                  waktu_buka: String(s.waktu_buka || ''),
-                  waktu_tutup: String(s.waktu_tutup || ''),
-                  zona_waktu: String(s.zona_waktu || 'WIB'),
-                  durasi_menit: Number(s.durasi_menit) || 60,
-                  minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
-                  is_acak_soal: parseBool(s.is_acak_soal, true),
-                  is_proctoring_active: parseBool(s.is_proctoring_active, true),
-                  enable_watermark: parseBool(s.enable_watermark, true),
-                  require_token: parseBool(s.require_token, true),
-                  token: String(s.token || ''),
-                  limit_soal_pg: Number(s.limit_soal_pg) || 25,
-                  limit_soal_uraian: Number(s.limit_soal_uraian) || 5,
-                  peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
-                };
-              }));
+              setSesiUjian(
+                d.sesi_ujian.filter(isRowNotEmpty).map((raw, idx) => {
+                  const s = normalizeRowKeys(raw);
+                  let parsedIds = [];
+                  try { parsedIds = JSON.parse(s.peserta_ids_json || '[]'); } catch (_) {}
+                  const parseBool = (val, def = true) => {
+                    if (val === undefined || val === null || val === '') return def;
+                    if (typeof val === 'boolean') return val;
+                    return String(val).toUpperCase() === 'TRUE' || String(val) === '1';
+                  };
+                  return {
+                    ...s,
+                    id_sesi: s.id_sesi || s.id || idx + 501,
+                    id_ujian: s.id_ujian,
+                    id_paket: s.id_paket,
+                    nama_sesi_spesifik: String(s.nama_sesi_spesifik || '').trim(),
+                    waktu_buka: String(s.waktu_buka || '').trim().replace(/^'/, ''),
+                    waktu_tutup: String(s.waktu_tutup || '').trim().replace(/^'/, ''),
+                    zona_waktu: String(s.zona_waktu || 'WIB').trim(),
+                    durasi_menit: Number(s.durasi_menit) || 60,
+                    minimal_menit_submit: Number(s.minimal_menit_submit) || 15,
+                    is_acak_soal: parseBool(s.is_acak_soal, true),
+                    is_proctoring_active: parseBool(s.is_proctoring_active, true),
+                    enable_watermark: parseBool(s.enable_watermark, true),
+                    require_token: parseBool(s.require_token, true),
+                    token: String(s.token || '').trim(),
+                    limit_soal_pg: Number(s.limit_soal_pg) || 25,
+                    limit_soal_uraian: Number(s.limit_soal_uraian) || 5,
+                    peserta_ids: Array.isArray(s.peserta_ids) ? s.peserta_ids : parsedIds
+                  };
+                })
+              );
             }
             if (Array.isArray(d.peserta_ujian)) {
-              const logsAll = Array.isArray(d.log_pelanggaran) ? d.log_pelanggaran : [];
-              const jawabanAll = Array.isArray(d.jawaban_siswa) ? d.jawaban_siswa : [];
-              setPesertaUjian(d.peserta_ujian.map(pu => {
-                let parsedDetailUraian = {};
-                try {
-                  parsedDetailUraian = typeof pu.detail_uraian === 'object' && pu.detail_uraian !== null
-                    ? pu.detail_uraian
-                    : JSON.parse(pu.detail_skor_uraian_json || '{}');
-                } catch (_) {}
+              const logsAll = Array.isArray(d.log_pelanggaran) ? d.log_pelanggaran.filter(isRowNotEmpty).map(normalizeRowKeys) : [];
+              const jawabanAll = Array.isArray(d.jawaban_siswa) ? d.jawaban_siswa.filter(isRowNotEmpty).map(normalizeRowKeys) : [];
+              setPesertaUjian(
+                d.peserta_ujian.filter(isRowNotEmpty).map((raw, idx) => {
+                  const pu = normalizeRowKeys(raw);
+                  let parsedDetailUraian = {};
+                  try {
+                    parsedDetailUraian = typeof pu.detail_uraian === 'object' && pu.detail_uraian !== null
+                      ? pu.detail_uraian
+                      : JSON.parse(pu.detail_skor_uraian_json || '{}');
+                  } catch (_) {}
 
-                let parsedPgMap = {};
-                try {
-                  parsedPgMap = typeof pu.jawaban_pg_siswa === 'object' && pu.jawaban_pg_siswa !== null
-                    ? pu.jawaban_pg_siswa
-                    : JSON.parse(pu.jawaban_pg_siswa_json || '{}');
-                } catch (_) {}
+                  let parsedPgMap = {};
+                  try {
+                    parsedPgMap = typeof pu.jawaban_pg_siswa === 'object' && pu.jawaban_pg_siswa !== null
+                      ? pu.jawaban_pg_siswa
+                      : JSON.parse(pu.jawaban_pg_siswa_json || '{}');
+                  } catch (_) {}
 
-                const jawabanPesertaRows = jawabanAll.filter(
-                  j => String(j.id_peserta_ujian) === String(pu.id_peserta_ujian)
-                );
-                const pgMapFromSheet = { ...parsedPgMap };
-                jawabanPesertaRows.forEach(jRow => {
-                  const idSoalKey = jRow.id_soal;
-                  if (!idSoalKey) return;
-                  if (String(jRow.tipe_soal || 'PG').toUpperCase() === 'PG') {
-                    if (jRow.jawaban_pg) pgMapFromSheet[idSoalKey] = String(jRow.jawaban_pg).trim().toUpperCase();
-                  } else {
-                    if (!parsedDetailUraian[idSoalKey]) {
-                      parsedDetailUraian[idSoalKey] = {
-                        id_soal: idSoalKey,
-                        jawaban: String(jRow.jawaban_uraian || ''),
-                        skor: Number(jRow.skor_didapat) || 0
-                      };
+                  const jawabanPesertaRows = jawabanAll.filter(
+                    j => String(j.id_peserta_ujian) === String(pu.id_peserta_ujian)
+                  );
+                  const pgMapFromSheet = { ...parsedPgMap };
+                  jawabanPesertaRows.forEach(jRow => {
+                    const idSoalKey = jRow.id_soal;
+                    if (!idSoalKey) return;
+                    if (String(jRow.tipe_soal || 'PG').toUpperCase() === 'PG') {
+                      if (jRow.jawaban_pg) pgMapFromSheet[idSoalKey] = String(jRow.jawaban_pg).trim().toUpperCase();
+                    } else {
+                      if (!parsedDetailUraian[idSoalKey]) {
+                        parsedDetailUraian[idSoalKey] = {
+                          id_soal: idSoalKey,
+                          jawaban: String(jRow.jawaban_uraian || ''),
+                          skor: Number(jRow.skor_didapat) || 0
+                        };
+                      }
                     }
-                  }
-                });
+                  });
 
-                return {
-                  ...pu,
-                  waktu_mulai: pu.waktu_mulai ? String(pu.waktu_mulai) : null,
-                  waktu_selesai: pu.waktu_selesai ? String(pu.waktu_selesai) : null,
-                  jumlah_pelanggaran: Number(pu.jumlah_pelanggaran) || 0,
-                  jml_terjawab: pu.jml_terjawab !== undefined && pu.jml_terjawab !== '' ? Number(pu.jml_terjawab) : undefined,
-                  jml_benar_pg: pu.jml_benar_pg !== undefined && pu.jml_benar_pg !== '' ? Number(pu.jml_benar_pg) : undefined,
-                  jml_salah_pg: pu.jml_salah_pg !== undefined && pu.jml_salah_pg !== '' ? Number(pu.jml_salah_pg) : undefined,
-                  skor_pg: Number(pu.skor_pg) || 0,
-                  skor_uraian: Number(pu.skor_uraian) || 0,
-                  jawaban_pg_siswa: pgMapFromSheet,
-                  detail_uraian: parsedDetailUraian,
-                  log_pelanggaran: logsAll.filter(lg => String(lg.id_peserta_ujian) === String(pu.id_peserta_ujian))
-                };
-              }));
+                  return {
+                    ...pu,
+                    id_peserta_ujian: pu.id_peserta_ujian || `PU-${pu.id_sesi}-${pu.id_user || idx}`,
+                    waktu_mulai: pu.waktu_mulai ? String(pu.waktu_mulai) : null,
+                    waktu_selesai: pu.waktu_selesai ? String(pu.waktu_selesai) : null,
+                    jumlah_pelanggaran: Number(pu.jumlah_pelanggaran) || 0,
+                    jml_terjawab: pu.jml_terjawab !== undefined && pu.jml_terjawab !== '' ? Number(pu.jml_terjawab) : undefined,
+                    jml_benar_pg: pu.jml_benar_pg !== undefined && pu.jml_benar_pg !== '' ? Number(pu.jml_benar_pg) : undefined,
+                    jml_salah_pg: pu.jml_salah_pg !== undefined && pu.jml_salah_pg !== '' ? Number(pu.jml_salah_pg) : undefined,
+                    skor_pg: Number(pu.skor_pg) || 0,
+                    skor_uraian: Number(pu.skor_uraian) || 0,
+                    jawaban_pg_siswa: pgMapFromSheet,
+                    detail_uraian: parsedDetailUraian,
+                    log_pelanggaran: logsAll.filter(lg => String(lg.id_peserta_ujian) === String(pu.id_peserta_ujian))
+                  };
+                })
+              );
             }
-            if (!silent) triggerToast('Tersinkronisasi', 'Data real berhasil dimuat dari Google Sheets.');
+            if (!silent) triggerToast('Database Terhubung!', 'Seluruh tabel berhasil dimuat dari Google Sheets.');
+          } else {
+            setDbConnStatus('error');
+            if (!silent) triggerToast('Respons Database Tidak Valid', 'Pastikan Code.gs sudah di-deploy sebagai Web App (Anyone).', 'warning');
           }
         } catch (err) {
-          if (!silent) triggerToast('Gagal Memuat Database', 'Periksa koneksi internet atau URL Google Apps Script.', 'warning');
+          setDbConnStatus('error');
+          if (!silent) triggerToast('Gagal Memuat Database', 'Periksa koneksi internet atau klik tombol API di kiri bawah.', 'warning');
         }
         setIsSyncing(false);
       };
@@ -1731,7 +1861,38 @@
       }, [sesiUjian, pesertaUjian, zonaWaktuIndonesia]);
 
       const filteredCommandPeserta = useMemo(() => {
-        return pesertaUjian.filter(pu => {
+        // Gabungkan data peserta_ujian aktual dengan daftar peserta yang terdaftar di sesi_ujian.peserta_ids
+        // agar Command Center tetap menampilkan daftar peserta target meskipun mereka belum menekan "Mulai Ujian"
+        const mapEntries = new Map();
+        pesertaUjian.forEach(pu => {
+          mapEntries.set(`${pu.id_sesi}_${pu.id_user}`, pu);
+        });
+        sesiUjian.forEach(s => {
+          const durDetik = (Number(s.durasi_menit) || 60) * 60;
+          (s.peserta_ids || []).forEach(uid => {
+            const key = `${s.id_sesi}_${uid}`;
+            if (!mapEntries.has(key)) {
+              mapEntries.set(key, {
+                id_peserta_ujian: `PU-${s.id_sesi}-${uid}`,
+                id_sesi: s.id_sesi,
+                id_user: uid,
+                waktu_mulai: null,
+                waktu_selesai: null,
+                sisa_detik: durDetik,
+                status_pengerjaan: 'belum',
+                jumlah_pelanggaran: 0,
+                skor_pg: 0,
+                skor_uraian: 0,
+                jawaban_pg_siswa: {},
+                detail_uraian: {},
+                log_pelanggaran: [],
+                user_agent_device: 'Belum Login Perangkat'
+              });
+            }
+          });
+        });
+
+        return Array.from(mapEntries.values()).filter(pu => {
           const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
           const sesi = sesiUjian.find(s => String(s.id_sesi) === String(pu.id_sesi));
           const paket = paketSoal.find(p => String(p.id_paket) === String(sesi?.id_paket));
@@ -3278,6 +3439,27 @@
               </h2>
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
+                  onClick={() => fetchAllFromSheets(false)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition ${
+                    dbConnStatus === 'connected'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                      : dbConnStatus === 'error'
+                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
+                      : 'bg-sky-500/15 border-sky-500/30 text-sky-300'
+                  }`}
+                  title="Klik untuk memuat ulang seluruh data dari Google Sheets"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isSyncing
+                      ? 'Memuat Database...'
+                      : dbConnStatus === 'connected'
+                      ? `DB Terhubung (${users.length} Siswa • ${masterSoal.length} Soal)`
+                      : 'Muat Ulang Database'}
+                  </span>
+                </button>
+                <button
                   onClick={() => setShowMobileSimulator(true)}
                   className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"
                 >
@@ -3552,104 +3734,933 @@
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
                           {filteredCommandPeserta.map(pu => {
-                            const u = users.find(usr => usr.id_user === pu.id_user);
+                            const u = users.find(usr => String(usr.id_user) === String(pu.id_user));
                             return (
                               <tr key={pu.id_peserta_ujian} className="hover:bg-slate-800/30">
                                 <td className="p-3.5 pl-5">
-                                  <div className="font-bold text-white">{u?.nama_lengkap}</div>
-                                  <div className="text-[10px] text-slate-400">Tingkat {u?.tingkat || inferTingkatFromKelas(u?.kelas)} • {u?.kelas} • NISN: {u?.username_nisn}</div>
+                                  <div className="font-bold text-white">{u?.nama_lengkap || `Peserta #${pu.id_user}`}</div>
+                                  <div className="text-[10px] text-slate-400">Tingkat {u?.tingkat || inferTingkatFromKelas(u?.kelas)} • {u?.kelas || '-'} • NISN: {u?.username_nisn || pu.id_user}</div>
                                 </td>
                                 <td className="p-3.5">
-                                  <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
-                                    pu.status_pengerjaan === 'selesai' ? 'bg-emerald-500/15 text-emerald-400' :
-                                    pu.status_pengerjaan === 'sedang_mengerjakan' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/20 text-red-400'
-                                  }`}>
-                                    {pu.status_pengerjaan}
-                                  </span>
+                                  {pu.status_pengerjaan === 'selesai' && <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-bold">Selesai</span>}
+                                  {pu.status_pengerjaan === 'sedang_mengerjakan' && <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 font-bold">Mengerjakan ({formatTimer(pu.sisa_detik)})</span>}
+                                  {pu.status_pengerjaan === 'dihentikan_sistem' && <span className="px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 font-bold">Auto Force Submit (4x)</span>}
+                                  {pu.status_pengerjaan === 'belum' && <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 font-bold">Belum Mulai</span>}
                                 </td>
-                                <td className="p-3.5 text-[11px] text-slate-300">{pu.user_agent_device}</td>
-                                <td className="p-3.5 font-bold text-amber-300">{pu.jumlah_pelanggaran} / 3 Strike</td>
-                                <td className="p-3.5 pr-5 text-right">
-                                  <div className="inline-flex items-center justify-end gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updatedItem = {
-                                          ...pu,
-                                          status_pengerjaan: 'sedang_mengerjakan',
-                                          jumlah_pelanggaran: 0,
-                                          waktu_selesai: '',
-                                          log_pelanggaran: []
-                                        };
-                                        setPesertaUjian(pesertaUjian.map(item =>
-                                          item.id_peserta_ujian === pu.id_peserta_ujian ? updatedItem : item
-                                        ));
-                                        // Reset juga state ujian lokal peserta jika berada di browser yang sama
-                                        try {
-                                          const localExamKey = `skarida_exam_state_${pu.id_sesi}_${pu.id_user}`;
-                                          const rawLocal = safeGetStorage(localExamKey, '');
-                                          if (rawLocal) {
-                                            const parsedLocal = JSON.parse(rawLocal);
-                                            parsedLocal.status_pengerjaan = 'sedang_mengerjakan';
-                                            parsedLocal.strikes = 0;
-                                            parsedLocal.violationLogs = [];
-                                            safeSetStorage(localExamKey, JSON.stringify(parsedLocal));
-                                          }
-                                        } catch (_) {}
-                                        syncToSheets({
-                                          action: 'resetParticipantSession',
-                                          id_peserta_ujian: pu.id_peserta_ujian,
-                                          id_sesi: pu.id_sesi,
-                                          id_user: pu.id_user
-                                        });
-                                        triggerToast('Sesi & Strike Direset', `Sesi & strike ${u?.nama_lengkap} berhasil direset di server.`);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500 hover:text-slate-950 text-sky-300 rounded-xl font-bold border border-sky-500/30 transition-all shadow-sm"
-                                    >
-                                      <RefreshCw className="w-3.5 h-3.5" /> Reset Sesi
-                                    </button>
-                                    <button
-                                      disabled={pu.status_pengerjaan === 'selesai' || pu.status_pengerjaan === 'dihentikan_sistem'}
-                                      onClick={() => {
-                                        const nowWib = indonesianClockStr;
-                                        const updatedItem = {
-                                          ...pu,
-                                          status_pengerjaan: 'dihentikan_sistem',
-                                          waktu_selesai: nowWib,
-                                          sisa_detik: 0
-                                        };
-                                        setPesertaUjian(pesertaUjian.map(item =>
-                                          item.id_peserta_ujian === pu.id_peserta_ujian ? updatedItem : item
-                                        ));
-                                        // Tandai juga state ujian lokal peserta agar layar ujian langsung berhenti seketika
-                                        try {
-                                          const localExamKey = `skarida_exam_state_${pu.id_sesi}_${pu.id_user}`;
-                                          const rawLocal = safeGetStorage(localExamKey, '');
-                                          if (rawLocal) {
-                                            const parsedLocal = JSON.parse(rawLocal);
-                                            parsedLocal.status_pengerjaan = 'dihentikan_sistem';
-                                            parsedLocal.waktuSelesaiStr = nowWib;
-                                            safeSetStorage(localExamKey, JSON.stringify(parsedLocal));
-                                          }
-                                          localStorage.removeItem(`skarida_active_exam_${pu.id_user}`);
-                                        } catch (_) {}
-                                        syncToSheets({
-                                          action: 'forceSubmitParticipant',
-                                          id_peserta_ujian: pu.id_peserta_ujian,
-                                          id_sesi: pu.id_sesi,
-                                          id_user: pu.id_user,
-                                          waktu_selesai: nowWib
-                                        });
-                                        triggerToast('Force Submit Dieksekusi', `Ujian ${u?.nama_lengkap} telah dihentikan paksa dari Command Center.`, 'warning');
-                                      }}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-600 hover:text-white disabled:opacity-40 text-rose-300 rounded-xl font-bold border border-rose-500/30 transition-all shadow-sm"
-                                    >
-                                      <Ban className="w-3.5 h-3.5" /> Force Submit
-                                    </button>
-                                  </div>
+                                <td className="p-3.5 text-slate-300">{pu.user_agent_device || '-'}</td>
+                                <td className="p-3.5">
+                                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">{pu.jumlah_pelanggaran} / 3 Peringatan</span>
+                                </td>
+                                <td className="p-3.5 pr-5 text-right space-x-1.5">
+                                  <button
+                                    onClick={() => {
+                                      const updatedItem = { ...pu, status_pengerjaan: 'sedang_mengerjakan', waktu_selesai: null, jumlah_pelanggaran: 0, log_pelanggaran: [] };
+                                      setPesertaUjian(prev =>
+                                        prev.some(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian))
+                                          ? prev.map(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian) ? updatedItem : p)
+                                          : [...prev, updatedItem]
+                                      );
+                                      syncToSheets({
+                                        action: 'resetParticipantSession',
+                                        id_peserta_ujian: pu.id_peserta_ujian,
+                                        id_sesi: pu.id_sesi,
+                                        id_user: pu.id_user
+                                      });
+                                      triggerToast('Sesi Direset', `Sesi & catatan pelanggaran ${u?.nama_lengkap || 'peserta'} berhasil direset.`);
+                                    }}
+                                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold"
+                                  >
+                                    Reset Sesi
+                                  </button>
+                                  <button
+                                    disabled={pu.status_pengerjaan === 'selesai' || pu.status_pengerjaan === 'dihentikan_sistem'}
+                                    onClick={() => {
+                                      const nowWib = indonesianClockStr;
+                                      const updatedItem = {
+                                        ...pu,
+                                        status_pengerjaan: 'dihentikan_sistem',
+                                        waktu_selesai: nowWib,
+                                        sisa_detik: 0
+                                      };
+                                      setPesertaUjian(prev =>
+                                        prev.some(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian))
+                                          ? prev.map(p => String(p.id_peserta_ujian) === String(pu.id_peserta_ujian) ? updatedItem : p)
+                                          : [...prev, updatedItem]
+                                      );
+                                      syncToSheets({
+                                        action: 'forceSubmitParticipant',
+                                        id_peserta_ujian: pu.id_peserta_ujian,
+                                        id_sesi: pu.id_sesi,
+                                        id_user: pu.id_user,
+                                        waktu_selesai: nowWib,
+                                        status_akhir: 'dihentikan_sistem'
+                                      });
+                                      triggerToast('Force Submit Dieksekusi', `Ujian ${u?.nama_lengkap || 'peserta'} telah dihentikan paksa.`, 'warning');
+                                    }}
+                                    className="px-2.5 py-1 bg-red-900/50 hover:bg-red-700 disabled:opacity-40 text-red-200 rounded-lg font-bold"
+                                  >
+                                    Force Submit
+                                  </button>
                                 </td>
                               </tr>
                             );
                           })}
+                          {filteredCommandPeserta.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-slate-500">
+                                Belum ada data peserta pada filter sesi ini. Klik tombol <strong>"DB Terhubung / Muat Ulang Database"</strong> di kanan atas atau periksa menu <strong>Konfigurasi Sesi</strong>.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. MANAJEMEN MASTER UJIAN */}
+              {activeTab === 'master-ujian' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Daftar Master Jenis Ujian</h3>
+                      <p className="text-xs text-slate-400">Kelola kategori ujian (PTS, PAS, USP, Kuis Harian) yang terhubung ke Google Sheets (<code>master_ujian</code>).</p>
+                    </div>
+                    <button
+                      onClick={() => setUjianModal({ id_ujian: null, kode: '', nama_ujian: '', status: 'Aktif' })}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Jenis Ujian
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5 w-14 text-center">No</th>
+                          <th className="p-3.5">Kode Ujian</th>
+                          <th className="p-3.5">Nama Lengkap Jenis Ujian</th>
+                          <th className="p-3.5 text-center">Status</th>
+                          <th className="p-3.5 text-right pr-5">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {masterUjian.map((u, idx) => (
+                          <tr key={u.id_ujian} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 text-center font-mono text-slate-400">{idx + 1}</td>
+                            <td className="p-3.5 font-mono font-bold text-amber-400">{u.kode || u.kode_ujian}</td>
+                            <td className="p-3.5 font-bold text-white">{u.nama_ujian}</td>
+                            <td className="p-3.5 text-center">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-bold text-[10px]">
+                                {u.status || 'Aktif'}
+                              </span>
+                            </td>
+                            <td className="p-3.5 pr-5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setUjianModal({ ...u, kode: u.kode || u.kode_ujian })}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setMasterUjian(masterUjian.filter(item => item.id_ujian !== u.id_ujian));
+                                  syncToSheets({ action: 'delete', sheet: 'master_ujian', pkField: 'id_ujian', pkValue: u.id_ujian });
+                                  triggerToast('Dihapus', 'Master jenis ujian telah dihapus.', 'warning');
+                                }}
+                                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {masterUjian.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-500">
+                              Belum ada data Master Ujian di Google Sheets (<code>master_ujian</code>). Klik <strong>"+ Tambah Jenis Ujian"</strong> untuk membuat baru.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. MANAJEMEN MASTER JURUSAN */}
+              {activeTab === 'master-jurusan' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Daftar Kompetensi Keahlian (Jurusan SMK)</h3>
+                      <p className="text-xs text-slate-400">Kelola daftar jurusan yang terhubung ke tabel Google Sheets (<code>master_jurusan</code>).</p>
+                    </div>
+                    <button
+                      onClick={() => setJurusanModal({ id_jurusan: null, kode_jurusan: '', nama_jurusan: '' })}
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Jurusan Baru
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5 w-14 text-center">No</th>
+                          <th className="p-3.5">Kode Jurusan</th>
+                          <th className="p-3.5">Nama Kompetensi Keahlian</th>
+                          <th className="p-3.5 text-right pr-5">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {masterJurusan.map((j, idx) => (
+                          <tr key={j.id_jurusan} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 text-center font-mono text-slate-400">{idx + 1}</td>
+                            <td className="p-3.5 font-mono font-bold text-sky-400">{j.kode_jurusan}</td>
+                            <td className="p-3.5 font-bold text-white">{j.nama_jurusan}</td>
+                            <td className="p-3.5 pr-5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setJurusanModal(j)}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setMasterJurusan(masterJurusan.filter(item => item.id_jurusan !== j.id_jurusan));
+                                  syncToSheets({ action: 'delete', sheet: 'master_jurusan', pkField: 'id_jurusan', pkValue: j.id_jurusan });
+                                  triggerToast('Dihapus', 'Data jurusan telah dihapus.', 'warning');
+                                }}
+                                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {masterJurusan.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-slate-500">
+                              Belum ada data Master Jurusan di Google Sheets (<code>master_jurusan</code>). Klik <strong>"+ Tambah Jurusan Baru"</strong>.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. MANAJEMEN MASTER KELAS & TINGKAT */}
+              {activeTab === 'master-kelas' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select
+                        value={kelasFilterTingkat}
+                        onChange={e => setKelasFilterTingkat(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      >
+                        <option value="ALL">Semua Tingkat (X, XI, XII)</option>
+                        {TINGKAT_LIST.map(t => <option key={t} value={t}>Tingkat Kelas {t}</option>)}
+                      </select>
+                      <select
+                        value={kelasFilterJurusan}
+                        onChange={e => setKelasFilterJurusan(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      >
+                        <option value="ALL">Semua Jurusan</option>
+                        {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => setKelasModal({ id_kelas: null, kode_jurusan: masterJurusan[0]?.kode_jurusan || 'DPIB', tingkat: 'X', nama_kelas: '' })}
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Kelas Baru
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5 w-14 text-center">No</th>
+                          <th className="p-3.5">Tingkat</th>
+                          <th className="p-3.5">Kode Jurusan</th>
+                          <th className="p-3.5">Nama Kelas / Rombel</th>
+                          <th className="p-3.5 text-right pr-5">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredMasterKelas.map((k, idx) => (
+                          <tr key={k.id_kelas} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 text-center font-mono text-slate-400">{idx + 1}</td>
+                            <td className="p-3.5">
+                              <span className="px-2.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-bold">
+                                Kelas {k.tingkat || inferTingkatFromKelas(k.nama_kelas, 'X')}
+                              </span>
+                            </td>
+                            <td className="p-3.5 font-mono font-bold text-sky-400">{k.kode_jurusan}</td>
+                            <td className="p-3.5 font-bold text-white">{k.nama_kelas}</td>
+                            <td className="p-3.5 pr-5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setKelasModal(k)}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setMasterKelas(masterKelas.filter(item => item.id_kelas !== k.id_kelas));
+                                  syncToSheets({ action: 'delete', sheet: 'master_kelas', pkField: 'id_kelas', pkValue: k.id_kelas });
+                                  triggerToast('Dihapus', 'Data kelas telah dihapus.', 'warning');
+                                }}
+                                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredMasterKelas.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-500">
+                              Belum ada data Master Kelas di Google Sheets (<code>master_kelas</code>). Klik <strong>"+ Tambah Kelas Baru"</strong>.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. MANAJEMEN USER ADMIN & GURU */}
+              {activeTab === 'manajemen-staff' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select
+                        value={staffFilterRole}
+                        onChange={e => setStaffFilterRole(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      >
+                        <option value="ALL">Semua Role (Admin & Guru)</option>
+                        <option value="admin">Superadmin / Proktor</option>
+                        <option value="guru">Guru Mata Pelajaran</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={staffSearch}
+                        onChange={e => setStaffSearch(e.target.value)}
+                        placeholder="Cari Nama / NIP / Mapel..."
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setStaffModal({ id_staff: null, username_nip: '', nama_lengkap: '', role: 'guru', mapel_jabatan: '', password_plain: 'GURU-2026', status: 'Aktif' })}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah User Admin / Guru
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                          <th className="p-3.5 pl-5 w-12 text-center">No</th>
+                          <th className="p-3.5">Nama Lengkap & Gelar</th>
+                          <th className="p-3.5">Username / NIP</th>
+                          <th className="p-3.5">Role</th>
+                          <th className="p-3.5">Mapel / Jabatan</th>
+                          <th className="p-3.5">Password Login</th>
+                          <th className="p-3.5 text-right pr-5">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {filteredStaffUsers.map((st, idx) => (
+                          <tr key={st.id_staff} className="hover:bg-slate-800/30">
+                            <td className="p-3.5 pl-5 text-center font-mono text-slate-400">{idx + 1}</td>
+                            <td className="p-3.5 font-bold text-white">{st.nama_lengkap}</td>
+                            <td className="p-3.5 font-mono text-indigo-400 font-bold">{st.username_nip}</td>
+                            <td className="p-3.5">
+                              <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${st.role === 'admin' ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}`}>
+                                {st.role}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-slate-300">{st.mapel_jabatan}</td>
+                            <td className="p-3.5 font-mono text-amber-300 font-bold">{st.password_plain}</td>
+                            <td className="p-3.5 pr-5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setStaffModal(st)}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setStaffUsers(staffUsers.filter(item => item.id_staff !== st.id_staff));
+                                  syncToSheets({ action: 'delete', sheet: 'users_staff', pkField: 'id_staff', pkValue: st.id_staff });
+                                  triggerToast('Dihapus', 'Akun staff berhasil dihapus.', 'warning');
+                                }}
+                                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredStaffUsers.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-slate-500">
+                              Belum ada data User Admin/Guru di Google Sheets (<code>users_staff</code>).
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. MANAJEMEN AKUN PESERTA (TEMPLATE EXCEL, IMPOR DATA PESERTA, KOLOM NO URUT & SORTIR) */}
+              {activeTab === 'akun' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Manajemen Akun Peserta Didik ({filteredUsers.length} dari {users.length} Siswa)</h3>
+                      <p className="text-xs text-slate-400">Unduh template Excel, impor data peserta massal, atau cetak kartu login ujian.</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadTemplatePeserta}
+                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4" /> Unduh Template Peserta (.xlsx)
+                      </button>
+                      <label className="cursor-pointer px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                        <Upload className="w-4 h-4" /> Impor Data Peserta (.xlsx)
+                        <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportPesertaExcel} />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowKartuModal(true)}
+                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-bold rounded-xl flex items-center gap-1.5"
+                      >
+                        <Printer className="w-4 h-4" /> Cetak Kartu ({filteredUsers.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditUserModal({ id_user: null, username_nisn: '', nama_lengkap: '', tingkat: 'X', kelas: masterKelas[0]?.nama_kelas || 'X DPIB 1', jurusan: masterJurusan[0]?.kode_jurusan || 'DPIB', agama: 'Islam', password_plain: `SKR-${Math.floor(1000 + Math.random() * 9000)}` })}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg"
+                      >
+                        <Plus className="w-4 h-4" /> Tambah Peserta
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter & Sortir Akun Peserta */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                    <select value={akunFilterTingkat} onChange={e => setAkunFilterTingkat(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Tingkat (X, XI, XII)</option>
+                      {TINGKAT_LIST.map(t => <option key={t} value={t}>Tingkat Kelas {t}</option>)}
+                    </select>
+                    <select value={akunFilterJurusan} onChange={e => { setAkunFilterJurusan(e.target.value); setAkunFilterKelas('ALL'); }} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Jurusan</option>
+                      {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
+                    </select>
+                    <select value={akunFilterKelas} onChange={e => setAkunFilterKelas(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Kelas</option>
+                      {masterKelas
+                        .filter(k => akunFilterJurusan === 'ALL' || k.kode_jurusan === akunFilterJurusan)
+                        .map(k => <option key={k.id_kelas} value={k.nama_kelas}>{k.nama_kelas}</option>)}
+                    </select>
+                    <select value={akunFilterAgama} onChange={e => setAkunFilterAgama(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                      <option value="ALL">Semua Agama</option>
+                      {AGAMA_LIST.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <select value={akunSortBy} onChange={e => setAkunSortBy(e.target.value)} className="bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-indigo-300 font-bold">
+                      <option value="nama_asc">Urutkan: Nama (A - Z)</option>
+                      <option value="nama_desc">Urutkan: Nama (Z - A)</option>
+                      <option value="nisn_asc">Urutkan: NISN (Kecil - Besar)</option>
+                      <option value="kelas_asc">Urutkan: Kelas</option>
+                      <option value="tingkat_asc">Urutkan: Tingkat (X - XII)</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={akunSearch}
+                      onChange={e => setAkunSearch(e.target.value)}
+                      placeholder="Cari Nama / NISN..."
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Tabel Akun Peserta dengan Kolom Nomor Urut (No) */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                            <th className="p-3.5 pl-5 w-14 text-center">No</th>
+                            <th className="p-3.5">Username (NISN)</th>
+                            <th className="p-3.5">Nama Lengkap Peserta</th>
+                            <th className="p-3.5">Tingkat & Kelas</th>
+                            <th className="p-3.5">Jurusan</th>
+                            <th className="p-3.5">Agama</th>
+                            <th className="p-3.5">Password Kartu</th>
+                            <th className="p-3.5 text-right pr-5">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {filteredUsers.map((u, idx) => (
+                            <tr key={u.id_user} className="hover:bg-slate-800/30">
+                              <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
+                              <td className="p-3.5 font-mono font-bold text-indigo-400">{u.username_nisn}</td>
+                              <td className="p-3.5 font-bold text-white">{u.nama_lengkap}</td>
+                              <td className="p-3.5">
+                                <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 font-bold text-[10px] mr-1.5">
+                                  Kelas {u.tingkat || inferTingkatFromKelas(u.kelas, 'X')}
+                                </span>
+                                <span className="font-semibold text-white">{u.kelas}</span>
+                              </td>
+                              <td className="p-3.5 font-mono font-bold text-sky-400">{u.jurusan}</td>
+                              <td className="p-3.5 text-emerald-300 font-semibold">{u.agama}</td>
+                              <td className="p-3.5 font-mono font-bold text-amber-300">{u.password_plain}</td>
+                              <td className="p-3.5 pr-5 text-right space-x-1.5">
+                                <button
+                                  onClick={() => setEditUserModal(u)}
+                                  className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setUsers(users.filter(item => item.id_user !== u.id_user));
+                                    syncToSheets({ action: 'delete', sheet: 'users_peserta', pkField: 'id_user', pkValue: u.id_user });
+                                    triggerToast('Dihapus', `Akun peserta ${u.nama_lengkap} dihapus.`, 'warning');
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {filteredUsers.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="p-8 text-center text-slate-500">
+                                Belum ada data peserta pada filter ini. Gunakan tombol <strong>"Impor Data Peserta (.xlsx)"</strong> atau <strong>"+ Tambah Peserta"</strong>.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 7. BANK SOAL MULTIMEDIA & PAKET MAPEL */}
+              {activeTab === 'bank-soal' && (
+                <div className="space-y-5">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select value={soalFilterMapel} onChange={e => setSoalFilterMapel(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <option value="ALL">Semua Mata Pelajaran</option>
+                        {[...new Set(paketSoal.map(p => p.mata_pelajaran))].map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <select value={soalFilterTingkat} onChange={e => setSoalFilterTingkat(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <option value="ALL">Semua Tingkat (X, XI, XII)</option>
+                        {TINGKAT_LIST.map(t => <option key={t} value={t}>Tingkat Kelas {t}</option>)}
+                      </select>
+                      <select value={soalFilterJurusan} onChange={e => setSoalFilterJurusan(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <option value="ALL">Semua Jurusan</option>
+                        {masterJurusan.map(j => <option key={j.id_jurusan} value={j.kode_jurusan}>{j.kode_jurusan}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadTemplateSoal}
+                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-extrabold rounded-xl flex items-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4" /> Unduh Template Soal (.xlsx)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaketModal({ id_paket: null, mata_pelajaran: '', tingkat: 'X', kelas: 'X', jurusan: 'Semua Jurusan', mode_sasaran: 'semua', custom_items: [], guru: '' })}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg"
+                      >
+                        <Plus className="w-4 h-4" /> Buat Paket Bank Soal Mapel
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Daftar Kartu Paket Bank Soal Mapel */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredPaketSoal.map(pkt => {
+                      const soalInPaket = masterSoal.filter(s => String(s.id_paket) === String(pkt.id_paket));
+                      const countPG = soalInPaket.filter(s => s.tipe_soal === 'PG').length;
+                      const countUraian = soalInPaket.filter(s => s.tipe_soal === 'Uraian').length;
+                      const isSelected = String(selectedPaketId) === String(pkt.id_paket);
+                      return (
+                        <div
+                          key={pkt.id_paket}
+                          onClick={() => setSelectedPaketId(isSelected ? null : pkt.id_paket)}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-indigo-950/30 border-2 border-indigo-500 shadow-lg shadow-indigo-500/15'
+                              : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="px-2.5 py-0.5 rounded-lg bg-violet-500/20 text-violet-300 font-bold text-[10px]">
+                                Tingkat {pkt.tingkat || pkt.kelas || 'X'} • {pkt.jurusan}
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 font-extrabold text-[10px]">
+                                {countPG} butir soal PG dan {countUraian} Uraian
+                              </span>
+                            </div>
+                            <h4 className="font-extrabold text-white text-sm">{pkt.mata_pelajaran}</h4>
+                            <p className="text-[11px] text-slate-400">Penyusun: {pkt.guru || pkt.nama_guru || '-'}</p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-1.5 pt-2 border-t border-slate-800/80" onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => openReviewPaketPovModal(pkt)}
+                              className="px-2.5 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/30 font-extrabold text-[11px] flex items-center gap-1 transition"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Review Soal
+                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setPaketModal(pkt)}
+                                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white font-bold text-[11px] flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPaketSoal(paketSoal.filter(item => item.id_paket !== pkt.id_paket));
+                                  if (String(selectedPaketId) === String(pkt.id_paket)) setSelectedPaketId(null);
+                                  syncToSheets({ action: 'delete', sheet: 'paket_soal', pkField: 'id_paket', pkValue: pkt.id_paket });
+                                  triggerToast('Paket Dihapus', 'Paket soal telah dihapus.', 'warning');
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-[11px] flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Daftar Butir Soal (Kosong jika tidak ada paket soal yang dipilih) */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    {!selectedPaketId ? (
+                      <div className="p-10 text-center space-y-2">
+                        <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
+                        <div className="font-bold text-slate-300 text-sm">Belum Ada Paket Bank Soal Mapel yang Dipilih</div>
+                        <p className="text-xs text-slate-500">
+                          Klik salah satu kartu <strong>Paket Bank Soal Mapel</strong> di atas untuk melihat, mengimpor, atau menambahkan daftar butir soal.
+                        </p>
+                      </div>
+                    ) : (() => {
+                      const activePkt = paketSoal.find(p => String(p.id_paket) === String(selectedPaketId));
+                      const soalList = masterSoal.filter(s => String(s.id_paket) === String(selectedPaketId));
+                      const jmlPG = soalList.filter(s => s.tipe_soal === 'PG').length;
+                      const jmlUr = soalList.filter(s => s.tipe_soal === 'Uraian').length;
+
+                      return (
+                        <>
+                          <div className="p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3">
+                            <div>
+                              <h3 className="font-bold text-white text-sm">
+                                Daftar Butir Soal: {activePkt?.mata_pelajaran} ({jmlPG} butir soal PG dan {jmlUr} Uraian)
+                              </h3>
+                              <p className="text-xs text-slate-400">Mendukung rumus Microsoft Word (Copy-Paste Equation) & lampiran gambar di soal maupun opsi A–E.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className="cursor-pointer px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg">
+                                <Upload className="w-4 h-4" /> Impor Butir Soal (.xlsx)
+                                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => handleImportSoalExcel(e, selectedPaketId)} />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setSoalModal({
+                                  id_soal: null,
+                                  id_paket: selectedPaketId,
+                                  tipe_soal: 'PG',
+                                  kategori_kognitif: 'MoTS',
+                                  bobot_skor: 2,
+                                  teks_pertanyaan: '',
+                                  file_gambar_soal: null,
+                                  preview_gambar_soal: '',
+                                  jumlah_opsi: 5,
+                                  opsi: ['', '', '', '', ''],
+                                  gambar_opsi: [null, null, null, null, null],
+                                  preview_gambar_opsi: ['', '', '', '', ''],
+                                  kunci_jawaban: 'A'
+                                })}
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg"
+                              >
+                                <Plus className="w-4 h-4" /> Tambah Butir Soal
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                                  <th className="p-3.5 pl-5 w-14 text-center">No</th>
+                                  <th className="p-3.5">Pertanyaan & Lampiran Gambar</th>
+                                  <th className="p-3.5">Tipe & Level</th>
+                                  <th className="p-3.5">Kunci & Bobot</th>
+                                  <th className="p-3.5 text-right pr-5">Aksi</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60">
+                                {soalList.map((s, idx) => {
+                                  const imgSrc = resolveImageSrc(s.file_gambar_soal, s.preview_gambar_soal);
+                                  return (
+                                    <tr key={s.id_soal} className="hover:bg-slate-800/30">
+                                      <td className="p-3.5 pl-5 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
+                                      <td className="p-3.5 max-w-xl">
+                                        <RichMathText text={s.teks_pertanyaan} className="text-white font-medium line-clamp-2" />
+                                        {imgSrc && (
+                                          <div className="mt-1.5 flex items-center gap-2">
+                                            <img src={imgSrc} alt="Soal" className="h-10 w-16 rounded border border-slate-700 object-contain bg-slate-950" />
+                                            <span className="text-[10px] font-mono text-sky-400">{getCleanFileName(s.file_gambar_soal, 'gambar_soal.jpg')}</span>
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="p-3.5">
+                                        <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px] mr-1">{s.tipe_soal}</span>
+                                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">{s.kategori_kognitif}</span>
+                                      </td>
+                                      <td className="p-3.5 font-mono">
+                                        <span className="text-emerald-400 font-bold">Kunci: {s.kunci_jawaban}</span>
+                                        <span className="block text-[10px] text-slate-400">Bobot: {s.bobot_skor} Poin</span>
+                                      </td>
+                                      <td className="p-3.5 pr-5 text-right space-x-1.5">
+                                        <button
+                                          onClick={() => setPreviewSoalModal(s)}
+                                          className="px-2.5 py-1 bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                        >
+                                          <Eye className="w-3.5 h-3.5" /> Preview
+                                        </button>
+                                        <button
+                                          onClick={() => setSoalModal(s)}
+                                          className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                        >
+                                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setMasterSoal(masterSoal.filter(item => item.id_soal !== s.id_soal));
+                                            syncToSheets({ action: 'delete', sheet: 'master_soal', pkField: 'id_soal', pkValue: s.id_soal });
+                                            triggerToast('Soal Dihapus', 'Butir soal telah dihapus.', 'warning');
+                                          }}
+                                          className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                                {soalList.length === 0 && (
+                                  <tr>
+                                    <td colSpan={5} className="p-8 text-center text-slate-500">
+                                      Belum ada butir soal di paket ini. Klik <strong>"+ Tambah Butir Soal"</strong> atau <strong>"Impor Butir Soal (.xlsx)"</strong>.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* 8. KONFIGURASI SESI UJIAN */}
+              {activeTab === 'sesi' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input
+                        type="text"
+                        value={sesiSearch}
+                        onChange={e => setSesiSearch(e.target.value)}
+                        placeholder="Cari Nama Sesi / Mapel..."
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                      <input
+                        type="date"
+                        value={sesiFilterTanggal}
+                        onChange={e => setSesiFilterTanggal(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                      <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Rotasi Token Otomatis: <strong className="font-mono">{formatMinutesSeconds(tokenRotationSeconds)}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => rotateAllActiveTokens(false)}
+                          className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black hover:bg-amber-400"
+                        >
+                          Acak Ulang
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSesiModal(buildInitialSesiModalState(paketSoal[0]?.id_paket))}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Plus className="w-4 h-4" /> Buat Konfigurasi Sesi Baru
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800">
+                            <th className="p-3.5 pl-5">Nama Sesi & Paket Mapel</th>
+                            <th className="p-3.5">Jadwal Buka - Tutup (Waktu Indonesia)</th>
+                            <th className="p-3.5 text-center">Jumlah Soal Ditarik</th>
+                            <th className="p-3.5 text-center">Target Peserta</th>
+                            <th className="p-3.5 text-center">Toggle Keamanan & Token</th>
+                            <th className="p-3.5 text-right pr-5">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {filteredSesi.map(s => {
+                            const pkt = paketSoal.find(p => String(p.id_paket) === String(s.id_paket));
+                            const zona = s.zona_waktu || zonaWaktuIndonesia || 'WIB';
+                            return (
+                              <tr key={s.id_sesi} className="hover:bg-slate-800/30">
+                                <td className="p-3.5 pl-5">
+                                  <div className="font-bold text-white">{s.nama_sesi_spesifik}</div>
+                                  <div className="text-[11px] text-indigo-300 font-semibold">
+                                    {pkt?.mata_pelajaran || '-'} • Kelas {pkt?.tingkat || pkt?.kelas || 'X'} ({pkt?.jurusan || 'Semua Jurusan'})
+                                  </div>
+                                </td>
+                                <td className="p-3.5 font-mono text-[11px]">
+                                  <div className="text-emerald-400">Buka : {formatJadwalIndonesia(s.waktu_buka, zona)}</div>
+                                  <div className="text-rose-400">Tutup: {formatJadwalIndonesia(s.waktu_tutup, zona)}</div>
+                                  <div className="text-[10px] text-slate-400">Durasi: {s.durasi_menit}m (Min. Submit: {s.minimal_menit_submit}m)</div>
+                                </td>
+                                <td className="p-3.5 text-center font-mono">
+                                  <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 font-bold">
+                                    {s.limit_soal_pg ?? 0} PG + {s.limit_soal_uraian ?? 0} Uraian
+                                  </span>
+                                </td>
+                                <td className="p-3.5 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => { setPreviewSesiSearch(''); setPreviewSesiModal(s); }}
+                                    className="px-3 py-1 rounded-xl bg-sky-500/15 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/30 font-extrabold text-xs transition"
+                                  >
+                                    {(s.peserta_ids || []).length} Siswa
+                                  </button>
+                                </td>
+                                <td className="p-3.5 text-center">
+                                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = { ...s, is_acak_soal: !s.is_acak_soal };
+                                        setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
+                                        syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold border ${
+                                        s.is_acak_soal ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'
+                                      }`}
+                                    >
+                                      Acak Soal & Jawaban: {s.is_acak_soal ? 'ON' : 'OFF'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = { ...s, is_proctoring_active: !s.is_proctoring_active };
+                                        setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
+                                        syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold border ${
+                                        s.is_proctoring_active ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'
+                                      }`}
+                                    >
+                                      Anti-Cheat: {s.is_proctoring_active ? 'ON' : 'OFF'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const nextReq = !s.require_token;
+                                        const nextTok = nextReq ? (s.token || generateExamToken()) : '';
+                                        const updated = { ...s, require_token: nextReq, token: nextTok };
+                                        setSesiUjian(sesiUjian.map(item => item.id_sesi === s.id_sesi ? updated : item));
+                                        syncToSheets({ action: 'update', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi, data: updated });
+                                      }}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold border font-mono ${
+                                        s.require_token ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'
+                                      }`}
+                                    >
+                                      {s.require_token ? `Token: ${s.token || 'SKR-892A'}` : 'Token: OFF'}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="p-3.5 pr-5 text-right space-x-1.5">
+                                  <button
+                                    onClick={() => { setPreviewSesiSearch(''); setPreviewSesiModal(s); }}
+                                    className="px-2.5 py-1 bg-sky-500/15 hover:bg-sky-600 text-sky-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" /> Preview
+                                  </button>
+                                  <button
+                                    onClick={() => setSesiModal(s)}
+                                    className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" /> Edit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSesiUjian(sesiUjian.filter(item => item.id_sesi !== s.id_sesi));
+                                      syncToSheets({ action: 'delete', sheet: 'sesi_ujian', pkField: 'id_sesi', pkValue: s.id_sesi });
+                                      triggerToast('Sesi Dihapus', 'Jadwal sesi ujian telah dihapus.', 'warning');
+                                    }}
+                                    className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold inline-flex items-center gap-1"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {filteredSesi.length === 0 && (
+                            <tr>
+                              <td colSpan={6} className="p-8 text-center text-slate-500">
+                                Belum ada jadwal sesi ujian di Google Sheets (<code>sesi_ujian</code>). Klik <strong>"+ Buat Konfigurasi Sesi Baru"</strong>.
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
